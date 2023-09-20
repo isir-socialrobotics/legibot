@@ -48,41 +48,25 @@
     </include>
 
     <include>
-      <uri>model://table</uri>
-      <name>table</name>
+      <uri>model://cafe</uri>
+      <name>cafe</name>
       <pose>0 0 0 0 0 0</pose>
       <static>true</static>
     </include>
 
-    <state world_name='default'>
-      <sim_time>34 101000000</sim_time>
-      <real_time>34 289413723</real_time>
-      <wall_time>1695126631 542981928</wall_time>
-      <iterations>34101</iterations>
-      <model name='ground_plane'>
-        <pose>0 0 0 0 -0 0</pose>
-        <scale>1 1 1</scale>
-        <link name='link'>
-          <pose>0 0 0 0 -0 0</pose>
-          <velocity>0 0 0 0 -0 0</velocity>
-          <acceleration>0 0 0 0 -0 0</acceleration>
-          <wrench>0 0 0 0 -0 0</wrench>
-        </link>
-      </model>
-      <model name='table'>
-        <pose>-1.22153 -1.28134 0 0 -0 0</pose>
-        <scale>1 1 1</scale>
-        <link name='link'>
-          <pose>-1.22153 -1.28134 0 0 -0 0</pose>
-          <velocity>0 0 0 0 -0 0</velocity>
-          <acceleration>0 0 0 0 -0 0</acceleration>
-          <wrench>0 0 0 0 -0 0</wrench>
-        </link>
-      </model>
-      <light name='sun'>
-        <pose>0 0 10 0 -0 0</pose>
-      </light>
-    </state>
+    <include>
+      <uri>model://table</uri>
+      <name>table_1</name>
+      <pose>-2.5 -8 0 0 0 1.57</pose>
+      <static>true</static>
+    </include>
+
+    <include>
+      <uri>model://table</uri>
+      <name>table_2</name>
+      <pose>2 -8 0 0 0 1.57</pose>
+      <static>true</static>
+    </include>
 
     <gui fullscreen='0'>
       <camera name='user_camera'>
