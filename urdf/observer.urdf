@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<robot name="observer_person_d">
+
+  <!-- Define a link for the base of the robot -->
+  <link name="base_link"/>
+
+  <!-- Define a joint to attach the camera to the base link -->
+  <joint name="camera_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="camera_link"/>
+  </joint>
+
+  <!-- Define the camera link -->
+  <link name="camera_link">
+
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="1 1 1"/>
+      </geometry>
+    </collision>
+
+    <!-- Define the visual properties of the camera -->
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.4 0.4 0.4"/> <!-- You can adjust the size as needed -->
+      </geometry>
+      <material name="box_material">
+          <color rgba="0.8 0.5 0.5 1"/>
+      </material>
+    </visual>
+
+<!--     Define the camera sensor-->
+<!--    <visual name="camera_visual">-->
+<!--      <origin xyz="0 0 0" rpy="0 0 0"/> &lt;!&ndash; Adjust the camera position and orientation &ndash;&gt;-->
+<!--      <geometry>-->
+<!--&lt;!&ndash;        <mesh filename="package://your_package_name/meshes/camera.dae"/> &lt;!&ndash; Specify the camera mesh &ndash;&gt;&ndash;&gt;-->
+<!--        <mesh filename="/home/javad/.gazebo/models/person_standing/meshes/standing.dae"/>-->
+<!--      </geometry>-->
+<!--      <material name="camera_material">-->
+<!--        <color rgba="0.5 0.5 0.5 1"/> &lt;!&ndash; Adjust the camera color &ndash;&gt;-->
+<!--      </material>-->
+<!--    </visual>-->
+
+<!--     Define the camera sensor -->
+    <sensor name="camera" type="camera">
+      <camera name="rgb_camera">
+        <horizontal_fov>1.047</horizontal_fov> <!-- Horizontal field of view in radians (approx 60 degrees) -->
+        <image>
+          <width>640</width> <!-- Image width in pixels -->
+          <height>480</height> <!-- Image height in pixels -->
+          <format>R8G8B8</format> <!-- RGB format -->
+        </image>
+        <clip>
+          <near>0.02</near> <!-- Near clipping distance in meters -->
+          <far>100</far> <!-- Far clipping distance in meters -->
+        </clip>
+        <noise>
+          <type>gaussian</type>
+          <mean>0.0</mean>
+          <stddev>0.007</stddev>
+        </noise>
+      </camera>
+      <plugin name="observer_camera_controller" filename="libgazebo_ros_camera.so">
+        <alwaysOn>true</alwaysOn>
+        <updateRate>30.0</updateRate>
+        <cameraName>camera</cameraName>
+        <imageTopicName>camera/image_raw</imageTopicName>
+        <cameraInfoTopicName>camera/camera_info</cameraInfoTopicName>
+        <frameName>camera_link</frameName>
+      </plugin>
+    </sensor>
+  </link>
+
+</robot>
