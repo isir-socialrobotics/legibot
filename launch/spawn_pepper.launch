@@ -23,7 +23,7 @@
   <param name="robot_description_pepper_v" command="$(find xacro)/xacro --inorder $(find legibot)/urdf/pepper.urdf.xacro" />
 
   <node pkg="gazebo_ros" type="spawn_model" name="spawn_urdf_pepper_t"  args="-urdf -model pepper_v2
-    -param robot_description_pepper_v -x 0 -y 0 -z 0.15 -Y 3.14"
+    -param robot_description_pepper_v -x 0 -y 0 -z 0.05 -Y 3.14"
     />
 
 </launch>
