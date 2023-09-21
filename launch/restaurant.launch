@@ -17,7 +17,7 @@
 <!--     <arg name="yaw" value="0.0"/> -->
   </include>
 
-  <include file="$(find legibot)/launch/spawn_person.launch" >
+  <include file="$(find legibot)/launch/spawn_observer.launch" >
   </include>
 
 
