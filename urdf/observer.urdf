@@ -1,52 +1,57 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <robot name="observer_person_d">
-
-  <!-- Define a link for the base of the robot -->
-  <link name="base_link"/>
-
-  <!-- Define a joint to attach the camera to the base link -->
-  <joint name="camera_joint" type="fixed">
-    <parent link="base_link"/>
-    <child link="camera_link"/>
-  </joint>
-
-  <!-- Define the camera link -->
-  <link name="camera_link">
+  <link name="base_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/> <!-- Adjust the camera position and orientation -->
+      <geometry>
+        <!-- <box size="0.1 0.1 0.1"/> -->
+        <mesh filename="/home/javad/.gazebo/models/person_standing/meshes/standing.dae"/> <!-- fixme -->
+      </geometry>
+    </visual>
 
     <collision>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <origin xyz="0 0 0.9" />
       <geometry>
-        <box size="1 1 1"/>
+        <box size="0.5 0.15 1.8"/>
       </geometry>
     </collision>
 
-    <!-- Define the visual properties of the camera -->
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
+    <inertial>
+      <mass value="1.0"/>
+      <inertia ixx="0.001" ixy="0.0" ixz="0.0"
+               iyy="0.001" iyz="0.0" izz="0.001"/> <!-- Inertia tensor -->
+    </inertial>
+  </link>
+
+
+  <joint name="camera_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="camera_link"/>
+    <origin xyz="0.045 -0.15 1.78" rpy="0 0.4 -1.57"/>
+  </joint>
+
+
+  <link name="camera_link">
+
+    <collision>
       <geometry>
-        <box size="0.4 0.4 0.4"/> <!-- You can adjust the size as needed -->
+        <box size="0.02 0.02 0.02" />
       </geometry>
-      <material name="box_material">
-          <color rgba="0.8 0.5 0.5 1"/>
-      </material>
-    </visual>
+    </collision>
 
-<!--     Define the camera sensor-->
-<!--    <visual name="camera_visual">-->
-<!--      <origin xyz="0 0 0" rpy="0 0 0"/> &lt;!&ndash; Adjust the camera position and orientation &ndash;&gt;-->
-<!--      <geometry>-->
-<!--&lt;!&ndash;        <mesh filename="package://your_package_name/meshes/camera.dae"/> &lt;!&ndash; Specify the camera mesh &ndash;&gt;&ndash;&gt;-->
-<!--        <mesh filename="/home/javad/.gazebo/models/person_standing/meshes/standing.dae"/>-->
-<!--      </geometry>-->
-<!--      <material name="camera_material">-->
-<!--        <color rgba="0.5 0.5 0.5 1"/> &lt;!&ndash; Adjust the camera color &ndash;&gt;-->
-<!--      </material>-->
-<!--    </visual>-->
+    <inertial>
+      <mass value="0.2"/> <!-- Mass of the object -->
+      <inertia ixx="0.001" ixy="0.0" ixz="0.0"
+               iyy="0.001" iyz="0.0" izz="0.001"/> <!-- Inertia tensor -->
+    </inertial>
 
-<!--     Define the camera sensor -->
+  </link>
+
+  <gazebo reference="camera_link">
     <sensor name="camera" type="camera">
       <camera name="rgb_camera">
-        <horizontal_fov>1.047</horizontal_fov> <!-- Horizontal field of view in radians (approx 60 degrees) -->
+<!--        <horizontal_fov>1.047</horizontal_fov> &lt;!&ndash; in radians (approx 60 degrees) &ndash;&gt;-->
+        <horizontal_fov>1.8</horizontal_fov>
         <image>
           <width>640</width> <!-- Image width in pixels -->
           <height>480</height> <!-- Image height in pixels -->
@@ -62,15 +67,15 @@
           <stddev>0.007</stddev>
         </noise>
       </camera>
-      <plugin name="observer_camera_controller" filename="libgazebo_ros_camera.so">
+      <plugin filename="libgazebo_ros_camera.so"  name="observer_camera">
         <alwaysOn>true</alwaysOn>
         <updateRate>30.0</updateRate>
-        <cameraName>camera</cameraName>
-        <imageTopicName>camera/image_raw</imageTopicName>
-        <cameraInfoTopicName>camera/camera_info</cameraInfoTopicName>
-        <frameName>camera_link</frameName>
+        <cameraName>/observer/camera</cameraName>
+        <imageTopicName>image_raw</imageTopicName>
+        <cameraInfoTopicName>camera_info</cameraInfoTopicName>
+        <frameName>rgb_camera_link</frameName>
       </plugin>
     </sensor>
-  </link>
+  </gazebo>
 
 </robot>

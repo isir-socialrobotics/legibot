@@ -1,19 +1,11 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <launch>
 
-<!--   <arg name="launch_control_trajectory_all" default="true"/> -->
-<!--   <rosparam file="$(find pepper_gazebo_plugin)/config/pepper_gazebo_controller.yaml" command="load" /> -->
+  <param name="camera_name" type="string" value="observer_camera"/>
 
-  <!-- Load the URDF Model -->
   <param name="robot_description" command="cat '$(find legibot)/urdf/observer.urdf'" />
 
-
-  <!-- Spawn a robot into Gazebo -->
   <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model"
-    args="-urdf -param robot_description -x -3.3 -y 3 -z 1.0 -model Person_1"/>
-
-  <!-- Call Pepper Robot Trajectory Controller -->
-<!--   <include file="$(find pepper_control)/launch/pepper_control_trajectory.launch" unless="$(arg launch_control_trajectory_all)"/> -->
-<!--   <include file="$(find pepper_control)/launch/pepper_control_trajectory_all.launch" if="$(arg launch_control_trajectory_all)"/> -->
+    args="-urdf -param robot_description -x -3.3 -y -8 -z 1.0 -Y 1.8 -model observer1"/>
 
 </launch>
