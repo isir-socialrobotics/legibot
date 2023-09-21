@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<launch>
+
+  <param name="robot_description_pepper_v" command="cat '$(find legibot)/urdf/pepper.urdf'" />
+
+
+  <node name="spawn_person_obs" pkg="gazebo_ros" type="spawn_model"
+    args="-urdf -param robot_description_pepper_v -x -1.3 -y -5 -z 1.3 -Y 1.8 -model pepper_v"/>
+
+</launch>

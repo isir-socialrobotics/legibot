@@ -3,9 +3,9 @@
 
   <param name="camera_name" type="string" value="observer_camera"/>
 
-  <param name="person_description" command="cat '$(find legibot)/urdf/observer.urdf'" />
+  <param name="robot_description_person" command="cat '$(find legibot)/urdf/observer.urdf'" />
 
   <node name="spawn_person_obs" pkg="gazebo_ros" type="spawn_model"
-    args="-urdf -param person_description -x -3.3 -y -8 -z 1.0 -Y 1.8 -model observer1"/>
+    args="-urdf -param robot_description_person -x -3.3 -y -8 -z 1.0 -Y 1.8 -model observer1"/>
 
 </launch>
