@@ -83,12 +83,12 @@
       <static>true</static>
     </include>
 
-<!--    <include>-->
-<!--      <uri>model://person_standing</uri>-->
-<!--      <name>person_1</name>-->
-<!--      <pose>-3.7 -8 0 0 0 1.5707</pose>-->
-<!--      <static>true</static>-->
-<!--    </include>-->
+    <include>
+      <uri>model://person_standing</uri>
+      <name>person_2</name>
+      <pose>3.0 -8 0.1 0 0 -1.5707</pose>
+      <static>true</static>
+    </include>
 
     <gui fullscreen='0'>
       <camera name='user_camera'>

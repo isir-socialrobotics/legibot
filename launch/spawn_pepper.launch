@@ -8,7 +8,7 @@
   <include file="$(find pepper_description)/launch/pepper_upload.launch" />
 
   <!-- Spawn a robot into Gazebo -->
-  <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model"
+  <node name="spawn_urdf_pepper" pkg="gazebo_ros" type="spawn_model"
     args="-urdf -param robot_description -x -3.5 -y 5 -z 1.0 -model pepper_MP" />
 
   <!-- Call Pepper Robot Trajectory Controller -->
