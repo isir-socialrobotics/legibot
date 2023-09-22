@@ -20,5 +20,8 @@
   <include file="$(find legibot)/launch/spawn_observer.launch" >
   </include>
 
+<!--   <param name="model_turtle" type="string" value="waffle" /> -->
+<!--   <include file="$(find legibot)/launch/spawn_turtle.launch"> -->
+<!--   </include> -->
 
 </launch>
