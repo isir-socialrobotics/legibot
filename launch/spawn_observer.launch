@@ -1,11 +1,15 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <launch>
 
-  <param name="camera_name" type="string" value="observer_camera"/>
+  <arg name="x" default="0.0" />
+  <arg name="y" default="0.0" />
+  <arg name="yaw" default="0.0" />
+  <arg name="obj_name" default="observer" />
+<!--   <param name="camera_name" type="string" value="observer_camera"/> -->
 
   <param name="robot_description_person" command="cat '$(find legibot)/urdf/observer.urdf'" />
 
-  <node name="spawn_person_obs" pkg="gazebo_ros" type="spawn_model"
-    args="-urdf -param robot_description_person -x -3.3 -y -8 -z 1.0 -Y 1.8 -model observer1"/>
+  <node name="spawn_$(arg obj_name)" pkg="gazebo_ros" type="spawn_model"
+  args="-urdf -param robot_description_person -x $(arg x) -y $(arg y) -z 1.0 -Y $(arg yaw) -model $(arg obj_name)"/>
 
 </launch>

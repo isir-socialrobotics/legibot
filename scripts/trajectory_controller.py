@@ -91,12 +91,11 @@ class TrajectoryController:
 if __name__ == "__main__":
     rospy.init_node('trajectory_controller')
     args = argparse.ArgumentParser()
-    print("Args are: ", sys.argv)
-    print("Params are: ", rospy.get_param_names())
-
-    goal = rospy.get_param("/trajectory_controller_node/goal", "(0, 0)")
+    goal = rospy.get_param("/trajectory_controller_node/goal", "()")
     goal = eval(goal)
-    print("Goal is: ", goal)
+    if len(goal) != 2:
+        print("Exiting Trajectory Controller: Invalid Goal")
+        sys.exit(1)
     trajectory = [Point(goal[0], goal[1], 0)]
     controller = TrajectoryController(trajectory)
     while not rospy.is_shutdown():
