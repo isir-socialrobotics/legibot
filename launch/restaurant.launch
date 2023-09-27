@@ -1,7 +1,6 @@
 <?xml version="1.0"?>
 <launch>
 
-
   <include file="$(find gazebo_ros)/launch/empty_world.launch">
     <arg name="world_name" value="$(find legibot)/worlds/restaurant.world"/>
     <arg name="paused" value="false"/>
@@ -9,19 +8,13 @@
   </include>
 
   <include file="$(find legibot)/launch/spawn_pepper.launch" >
-<!--     <arg name="x" value="0.0"/> -->
-<!--     <arg name="y" value="0.0"/> -->
-<!--     <arg name="z" value="0.0"/> -->
-<!--     <arg name="roll" value="0.0"/> -->
-<!--     <arg name="pitch" value="0.0"/> -->
-<!--     <arg name="yaw" value="0.0"/> -->
+    <arg name="x" value="-3.0"/>
+    <arg name="y" value="4.3"/>
+    <arg name="yaw" value="-1.57"/>
   </include>
 
-  <include file="$(find legibot)/launch/spawn_observer.launch" >
-  </include>
+  <include file="$(find legibot)/launch/spawn_observer.launch" />
 
-<!--   <param name="model_turtle" type="string" value="waffle" /> -->
-<!--   <include file="$(find legibot)/launch/spawn_turtle.launch"> -->
-<!--   </include> -->
+  <include file="$(find teleop_twist_joy)/launch/teleop.launch" />
 
 </launch>

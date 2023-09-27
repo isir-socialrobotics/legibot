@@ -1,6 +1,10 @@
 <?xml version="1.0"?>
 <launch>
 
+  <arg name="x" default="0.0" />
+  <arg name="y" default="0.0" />
+  <arg name="yaw" default="0.0" />
+
 <!--   <arg name="launch_control_trajectory_all" default="true"/> -->
 <!--   <rosparam file="$(find pepper_gazebo_plugin)/config/pepper_gazebo_controller.yaml" command="load" /> -->
 
@@ -14,16 +18,10 @@
 <!--   <include file="$(find pepper_control)/launch/pepper_control_trajectory_all.launch" if="$(arg launch_control_trajectory_all)"/> -->
 
 <!--  New Pepper (with TurtleControl)  -->
-
-  <arg name="model_turtle" default="$(env TURTLEBOT3_MODEL)" doc="model_turtle type [burger, waffle, waffle_pi]"/>
-<!--   <param name="robot_description_pepper_v" command="cat '$(find legibot)/urdf/pepper.urdf'" /> -->
-<!--   <node name="spawn_person_obs" pkg="gazebo_ros" type="spawn_model" -->
-<!--     args="-urdf -param robot_description_pepper_v -x -1.3 -y -5 -z 1.3 -Y 1.8 -model pepper_v"/> -->
-
   <param name="robot_description_pepper_v" command="$(find xacro)/xacro --inorder $(find legibot)/urdf/pepper.urdf.xacro" />
 
-  <node pkg="gazebo_ros" type="spawn_model" name="spawn_urdf_pepper_t"  args="-urdf -model pepper_v2
-    -param robot_description_pepper_v -x 0 -y 0 -z 0.12 -Y 3.14"
-    />
+  <node pkg="gazebo_ros" type="spawn_model" name="spawn_urdf_pepper_t"  args="-urdf -model pepper_tur
+    -param robot_description_pepper_v -x $(arg x) -y $(arg y) -z 0.12 -Y $(arg yaw)"
+  />
 
 </launch>
