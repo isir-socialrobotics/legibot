@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<launch>
+
+  <node name="trajectory_controller" pkg="legibot" type="trajectory_controller.py" output="screen" clear_params="true">
+      <param name="goal" value="(-2.6,-7.1)" type="str"/>
+  </node>
+
+</launch>

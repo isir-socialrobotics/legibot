@@ -55,7 +55,7 @@
         <image>
           <width>640</width> <!-- Image width in pixels -->
           <height>480</height> <!-- Image height in pixels -->
-          <format>R8G8B8</format> <!-- RGB format -->
+          <format>B8G8R8</format> <!-- RGB format -->
         </image>
         <clip>
           <near>0.02</near> <!-- Near clipping distance in meters -->
