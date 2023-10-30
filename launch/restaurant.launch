@@ -9,13 +9,13 @@
 
   <include file="$(find legibot)/launch/spawn_pepper.launch" >
     <arg name="x" value="-3.0"/>
-    <arg name="y" value="4.3"/>
+    <arg name="y" value="3.0"/>
     <arg name="yaw" value="-1.57"/>
   </include>
 
   <include file="$(find legibot)/launch/spawn_observer.launch">
     <arg name="x" value="-3.4"/>
-    <arg name="y" value="-8"/>
+    <arg name="y" value="-8.5"/>
     <arg name="yaw" value="2.3"/>
     <arg name="obj_name" value="observer1" />
   </include>
@@ -29,8 +29,10 @@
 
   <include file="$(find teleop_twist_joy)/launch/teleop.launch" />
 
-  <node name="trajectory_controller" pkg="legibot" type="trajectory_controller.py" output="screen">
-    <param name="goal" value="(-2.6,-7.1)"/>
+  <node name="robot_controller" pkg="legibot" type="robot_controller.py" output="screen">
+    <param name="goal" value="(-2.6,-7.12)"/>
   </node>
+
+  <node name="observer_recorder" pkg="legibot" type="record_observer.py" output="screen" />
 
 </launch>

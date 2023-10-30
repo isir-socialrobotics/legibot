@@ -4,10 +4,17 @@ import sys
 import math
 import rospy
 import argparse
+import numpy as np
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Point
 from tf.transformations import euler_from_quaternion
 from geometry_msgs.msg import Twist
+
+sys.path.append('/home/javad/workspace/catkin_ws/src/cvae-based-legible-motion-generation')
+from bezier import Bezier
+
+from vive_ai.utils.point2d import Point2
+from vive_ai.consts.consts import *
 
 
 def angle_to_unitary(angle_rad):
@@ -26,12 +33,32 @@ def sign(x):
     return 0
 
 
+class OdomHistory:
+    def __init__(self, max_size=100):
+        self.max_size = max_size
+        self.history = []
+
+    def append(self, msg: Odometry):
+        if len(self.history) > 0:
+            last_msg = self.history[-1]
+            if msg.header.stamp - last_msg.header.stamp < rospy.Duration(0.5):
+                return
+        # point = Point2(msg.pose.pose.position.x, msg.pose.pose.position.y)
+        self.history.append(msg)
+        if len(self.history) > self.max_size:
+            self.history.pop(0)
+
+    def get_trajectory(self):
+        return [Point2(msg.pose.pose.position.x, msg.pose.pose.position.y) for msg in self.history]
+
+
 class TrajectoryController:
     def __init__(self, trajectory):
         self.trajectory = trajectory
         self.current_index = 0
         self.robot_xy = None
         self.robot_orien = -10
+        self.odom_history = OdomHistory()
 
         self.odom_sub = rospy.Subscriber('/odom', Odometry, self.odom_callback)
         self.cmd_vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
@@ -43,6 +70,7 @@ class TrajectoryController:
                                                   msg.pose.pose.orientation.y,
                                                   msg.pose.pose.orientation.z,
                                                   msg.pose.pose.orientation.w])[2]
+        self.odom_history.append(msg)
 
     def get_current_waypoint(self):
         return self.trajectory[self.current_index]
@@ -52,7 +80,7 @@ class TrajectoryController:
         dx = waypoint.x - pose.x
         dy = waypoint.y - pose.y
         dist = (dx**2 + dy**2)**0.5
-        goal_threshold = 0.1
+        goal_threshold = 0.25
         return dist < goal_threshold
 
     def __calc_command__(self) -> Twist:
@@ -78,7 +106,7 @@ class TrajectoryController:
 
         else:
             command.linear.x = 0.5
-            command.angular.z = angle_to_unitary(angle_to_subgoal - self.robot_orien) * 0.1  # some small rotation
+            command.angular.z = angle_to_unitary(angle_to_subgoal - self.robot_orien) * 0.1  # small orien correction
 
         return command
 
@@ -89,14 +117,34 @@ class TrajectoryController:
 
 
 if __name__ == "__main__":
-    rospy.init_node('trajectory_controller')
-    args = argparse.ArgumentParser()
-    goal = rospy.get_param("/trajectory_controller/goal", "()")
+    # try:
+    #     rospy.init_node('robot_controller')
+    # except Exception as e:
+    #     print("problem with ros init")
+    from vive_ai.core.ros_manager import RosNodeManager
+    RosNodeManager().connect(node_name="PathPlanner")
+    from vive_ai.logger.logger_factory import logger
+
+    goal = rospy.get_param("/robot_controller/goal", "(-2.6,-7.1)")
     goal = eval(goal)
     if len(goal) != 2:
         print("Exiting Trajectory Controller: Invalid Goal")
         sys.exit(1)
     trajectory = [Point(goal[0], goal[1], 0)]
-    controller = TrajectoryController(trajectory)
+    robot_init_pos = [-3, 3]
+    sub_goal = [3, 0]
+    b = Bezier([robot_init_pos, sub_goal, goal], samples=5)
+    traj_curve = b.generate_curve()
+    traj_curve = np.stack(traj_curve, axis=0).T
+
+    # import matplotlib.pyplot as plt
+    # plt.scatter([p[0] for p in traj_curve], [p[1] for p in traj_curve])
+    # plt.show()
+
+    controller = TrajectoryController([Point(p[0], p[1], 0) for p in traj_curve])
     while not rospy.is_shutdown():
+        # logger.info(f"Trajectory Controller Goal: {controller.get_current_waypoint()}")
+        logger.points([Point2(p.x, p.y) for p in controller.trajectory], color=RGB_RED, namespace="Waypoints", radius=0.07)
+        logger.points(controller.odom_history.get_trajectory(), color=RGB_BLUE, namespace="Trajectory", radius=0.05)
         controller.exec()
+
