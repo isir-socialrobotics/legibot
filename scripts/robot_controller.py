@@ -34,7 +34,7 @@ def sign(x):
 
 
 class OdomHistory:
-    def __init__(self, max_size=100):
+    def __init__(self, max_size=500):
         self.max_size = max_size
         self.history = []
 
@@ -102,10 +102,10 @@ class TrajectoryController:
         # check for rotation
         if abs(math.degrees(angle_to_unitary(angle_to_subgoal - self.robot_orien))) > 10:
             command.linear.x = 0
-            command.angular.z = 0.3 * sign(angle_to_unitary(angle_to_subgoal - self.robot_orien))
+            command.angular.z = 0.2 * sign(angle_to_unitary(angle_to_subgoal - self.robot_orien))
 
         else:
-            command.linear.x = 0.5
+            command.linear.x = 0.3
             command.angular.z = angle_to_unitary(angle_to_subgoal - self.robot_orien) * 0.1  # small orien correction
 
         return command
@@ -132,19 +132,26 @@ if __name__ == "__main__":
         sys.exit(1)
     trajectory = [Point(goal[0], goal[1], 0)]
     robot_init_pos = [-3, 3]
-    sub_goal = [3, 0]
-    b = Bezier([robot_init_pos, sub_goal, goal], samples=5)
+    # sub_goals = [[-3, 1], [-1, 0], [1, -1.5]]  # legible
+    sub_goals = [[-3, -1], [-0.7, -2], [-1.5, -4]]  # illegible
+    b = Bezier([robot_init_pos] + sub_goals + [goal], samples=7)
     traj_curve = b.generate_curve()
     traj_curve = np.stack(traj_curve, axis=0).T
 
-    # import matplotlib.pyplot as plt
-    # plt.scatter([p[0] for p in traj_curve], [p[1] for p in traj_curve])
-    # plt.show()
+    len_traj = [np.linalg.norm(traj_curve[:, i] - traj_curve[:, i - 1]) for i in range(1, len(traj_curve.T))]
+    print("Total trajectory length: ", sum(len_traj))
+
+    tables_centers = [[-2.5, -8], [-2.5, -4], [2, -8]]
+    tables_4_corners = np.array([[x+0.2, y+0.5, x-0.2, y+0.5, x-0.2, y-0.5, x+0.2, y-0.5] for x, y in tables_centers]).reshape(-1, 4, 2)
 
     controller = TrajectoryController([Point(p[0], p[1], 0) for p in traj_curve])
     while not rospy.is_shutdown():
         # logger.info(f"Trajectory Controller Goal: {controller.get_current_waypoint()}")
-        logger.points([Point2(p.x, p.y) for p in controller.trajectory], color=RGB_RED, namespace="Waypoints", radius=0.07)
-        logger.points(controller.odom_history.get_trajectory(), color=RGB_BLUE, namespace="Trajectory", radius=0.05)
+        logger.points([Point2(p.x, p.y) for p in controller.trajectory], color=RGB_RED, namespace="Waypoints", radius=0.06)
+        traj = controller.odom_history.get_trajectory() + controller.odom_history.get_trajectory()[::-1]
+        logger.polygon(traj, color=RGB_PURPLE, namespace="Trajectory")
         controller.exec()
+
+        for ii, corners in enumerate(tables_4_corners):
+            logger.polygon(corners, color=RGB_ORANGE, namespace=f"Table_{ii}")
 
