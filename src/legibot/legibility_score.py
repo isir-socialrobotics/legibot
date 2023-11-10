@@ -14,7 +14,7 @@ def actual_cost(traj) -> float:
     return cost_
 
 
-def calc_legibility(goals_xy, cur_traj, cost_scaler=0.5):
+def calc_legibility(goals_xy, cur_traj, cost_scaler=1.0):
     p_g_posterior = [0] * len(goals_xy)
     for ii, g in enumerate(goals_xy):
         p_g_prior = 1 / len(goals_xy)  # assuming a uniform P(G) distribution
@@ -22,7 +22,7 @@ def calc_legibility(goals_xy, cur_traj, cost_scaler=0.5):
         cost_qg = min_cost(cur_traj[-1], g) * cost_scaler
         cost_sq = actual_cost(cur_traj) * cost_scaler
 
-        p_g_posterior[ii] = np.exp(-cost_sq -cost_qg) / np.exp(-cost_sg) * p_g_prior
+        p_g_posterior[ii] = np.exp(-cost_sq - cost_qg) / np.exp(-cost_sg) * p_g_prior
 
     # normalize
     p_g_posterior = [x / sum(p_g_posterior) for x in p_g_posterior]
