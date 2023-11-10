@@ -2,26 +2,25 @@ import numpy as np
 
 
 def min_cost(a, b) -> float:
-    """
-    cost of travelling from a to b
-    """
+    """cost of travelling from point a to b (euclidean distance)"""
     return np.linalg.norm(b - a)
 
 
 def actual_cost(traj) -> float:
-    c = 0
+    """cost of travelling along a trajectory (sum of Euclidean distances between consecutive points)"""
+    cost_ = 0
     for p1, p2 in zip(traj[:-1], traj[1:]):
-        c += np.linalg.norm(p2 - p1)
-    return c
+        cost_ += np.linalg.norm(p2 - p1)
+    return cost_
 
 
-def calc_legibility(goals_xy, cur_traj):
+def calc_legibility(goals_xy, cur_traj, cost_scaler=0.5):
     p_g_posterior = [0] * len(goals_xy)
     for ii, g in enumerate(goals_xy):
         p_g_prior = 1 / len(goals_xy)  # assuming a uniform P(G) distribution
-        cost_sg = min_cost(cur_traj[0], g) / 100
-        cost_qg = min_cost(cur_traj[-1], g) / 100
-        cost_sq = actual_cost(cur_traj) / 100
+        cost_sg = min_cost(cur_traj[0], g) * cost_scaler
+        cost_qg = min_cost(cur_traj[-1], g) * cost_scaler
+        cost_sq = actual_cost(cur_traj) * cost_scaler
 
         p_g_posterior[ii] = np.exp(-cost_sq -cost_qg) / np.exp(-cost_sg) * p_g_prior
 
