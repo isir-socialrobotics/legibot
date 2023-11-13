@@ -10,7 +10,7 @@ sys.path.append('/home/javad/workspace/catkin_ws/src/cvae-based-legible-motion-g
 from bezier import Bezier
 
 from vive_ai.utils.point2d import Point2
-from vive_ai.consts.consts import RGB_PURPLE, RGB_RED, RGB_ORANGE
+from legibot.colors import RGB_PURPLE, RGB_RED, RGB_ORANGE
 
 # rospy.init_node('robot_controller')
 from vive_ai.core.ros_manager import RosNodeManager

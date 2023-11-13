@@ -29,7 +29,8 @@ def calc_legibility(goals_xy, cur_traj, cost_scaler=1.0):
     return p_g_posterior
 
 
-def EoR():  # Envelope of Readiness: final percentage of the trajectory that is legible
+def EoR(full_traj, goal_xy):
+    """Envelope of Readiness: final percentage of the trajectory that is legible"""
     pass
 
 

@@ -1,139 +1,22 @@
 #!/usr/bin/env python
-
+import os
 import cv2
 import numpy as np
-import os
-
-import rospy
-# import pykalman
-from filterpy.kalman import KalmanFilter
-from sensor_msgs.msg import Image
 
 from legibot.legibility_core import calc_legibility
 from legibot.projection_api import make_grid, make_homog, draw_projected_grid, project_points
 from vive_ai.logger.logger_factory import logger
-from vive_ai.consts.consts import BGR_RED, BGR_GREEN, BGR_BLUE, BGR_YELLOW, BGR_WHITE, BGR_BLACK, BGR_ORANGE
+from legibot.colors import BGR_RED, BGR_GREEN, BGR_BLUE, BGR_YELLOW, BGR_WHITE, BGR_BLACK, BGR_ORANGE
 
-
-def consistent_optical_flow(frame1, frame2):
-    flow_forward = cv2.calcOpticalFlowFarneback(frame1, frame2, None, 0.5, 3, 15, 3, 5, 1.2, 0)
-    flow_backward = cv2.calcOpticalFlowFarneback(frame2, frame1, None, 0.5, 3, 15, 3, 5, 1.2, 0)
-
-    # Define a consistency threshold (you can adjust this value)
-    threshold = 2.0  # Adjust as needed
-
-    # Initialize an empty mask to mark inconsistent flow vectors
-    # Calculate the Euclidean distance between flow vectors
-    distances = np.linalg.norm(flow_forward - flow_backward, axis=2)
-
-    # Create an inconsistency mask based on the threshold
-    inconsistent_mask = (distances > threshold).astype(np.uint8) * 255
-
-    # cv2.imshow('mask', inconsistent_mask)
-    # updated_flow = flow_forward * inconsistent_mask[:, :, np.newaxis]
-
-    return inconsistent_mask
-
-
-def background_subtraction_mask(frame1, frame2):
-    # blur
-    blur1 = cv2.GaussianBlur(frame1, (5, 5), 0)
-    blur2 = cv2.GaussianBlur(frame2, (5, 5), 0)
-
-    diff = cv2.absdiff(blur1, blur2)
-    _, thresh = cv2.threshold(diff, 25, 255, cv2.THRESH_BINARY)
-    kernel = np.ones((10, 10), np.uint8)
-    dilated = cv2.dilate(thresh, kernel, iterations=3)
-
-    # cv2.imshow('mask-bg', dilated)
-    return dilated
-
-
-def detect_objects(flow_im):
-    gray = cv2.cvtColor(flow_im, cv2.COLOR_BGR2GRAY)
-    # gray = cv2.erode(gray, np.ones((2, 2), np.uint8), iterations=1)
-    gray = cv2.dilate(gray, np.ones((7, 7), np.uint8), iterations=1)
-    ret_, thresh = cv2.threshold(gray, 20, 255, 0)
-    contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-    contours = [c for c in contours if cv2.contourArea(c) > 100]
-    contours = sorted(contours, key=cv2.contourArea, reverse=True)
-    return contours[:1]
-
-
-def capture_click(event, x, y, flags, param):
-    if event == cv2.EVENT_LBUTTONDOWN:
-        pnts = [[x, y]]
-        pnts_proj = project_points(pnts, param[0])
-        print(f"{pnts} => {pnts_proj}")
-
-
-class KalmanFilter2D:
-    def __init__(self, dt=1.0):
-        self.kf = KalmanFilter(dim_x=4, dim_z=2)
-        self.kf.x = np.zeros((4,))
-        self.kf.F = np.array([[1., 0., dt, 0.],
-                             [0., 1., 0., dt],
-                             [0., 0., 1., 0.],
-                             [0., 0., 0., 1.]])  # state transition matrix
-        self.kf.H = np.array([[1., 0., 0., 0.],
-                         [0., 1., 0., 0.]])  # Measurement function
-        self.kf.P *= 1000.  # covariance matrix
-        self.kf.R = np.eye(2) * 5  # state uncertainty
-        self.kf.Q = np.eye(4) * 0.1  # process uncertainty
-        
-        self.initialized = False
-        self.trajectory = []
-
-    def update(self, z):
-        if not self.initialized:
-            self.kf.x[:2] = z
-            self.initialized = True
-
-        self.kf.predict()
-        self.kf.update(z)
-        self.trajectory.append(self.kf.x[:2])
-        return self.kf.x[:2], self.kf.x[2:]
-
+from legibot.capture_input import read_frame_file
+from legibot.cv_utils import capture_click
+from legibot.kf_tracking import KalmanFilter2D
+from legibot.opf_utils import background_subtraction_mask, detect_objects
 
 cap = None
 frame_index = -1
 output_dir = ""
-def read_frame_cap():
-    global frame_index, cap, output_dir
-    if cap is None:
-        # video_source = os.path.join("/home/javad/Videos/legibot", "observer-2023-10-30_19-04-07.avi")
-        # video_source = os.path.join("/home/javad/Videos/legibot", "observer-2023-10-31_14-32-19.avi")
-        # video_source = os.path.join("/home/javad/Videos/legibot", "observer-2023-10-31_15-35-32.avi")
-        # video_source = os.path.join("/home/javad/Videos/legibot", "observer-2023-11-02_12-57-36.avi")
-        video_source = os.path.join("/home/javad/Videos/legibot", "observer-2023-11-02_14-41-42.avi")  # legible
-        # video_source = os.path.join("/home/javad/Videos/legibot", "observer-2023-11-02_14-50-21.avi")  # illegible
-        output_dir = os.path.join("/home/javad/workspace/catkin_ws/src/legibot", "output",
-                                  os.path.basename(video_source)[0:-4])
-        if not os.path.exists(output_dir): os.makedirs(output_dir)
-        cap = cv2.VideoCapture(video_source)
 
-    ret, frame = cap.read()
-    if not ret: return None
-    frame_index += 1
-    return frame
-
-
-def read_frame_ros():
-    global frame_index, cap, output_dir
-    def image_callback(msg):
-        global frame_index, frame2
-        frame2 = np.frombuffer(msg.data, dtype=np.uint8).reshape(msg.height, msg.width, -1)
-        # frame2 = cv2.cvtColor(frame2, cv2.COLOR_BGR2RGB)
-        frame_index += 1
-        print(f"New frame: {frame_index}")
-
-    if cap is None:
-        "/observer/camera/image_raw"
-        cap = rospy.Subscriber("/observer/camera/image_raw", Image, callback=image_callback, queue_size=1)
-        output_dir = os.path.join("/home/javad/workspace/catkin_ws/src/legibot", "output", "ros")
-        if not os.path.exists(output_dir): os.makedirs(output_dir)
-
-    return frame2
 
 frame2 = None
 prvs = None
@@ -145,7 +28,7 @@ robot_tracker = KalmanFilter2D()
 robot_pred_tracker = KalmanFilter2D()
 
 while True:
-    frame2 = read_frame_cap()  # read source frame
+    frame2 = read_frame_file()  # read source frame
     # frame2 = read_frame_ros()
     if frame2 is None or frame_index % 8 != 0: continue
 

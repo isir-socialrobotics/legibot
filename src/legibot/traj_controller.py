@@ -5,7 +5,6 @@ from geometry_msgs.msg import Point
 from tf.transformations import euler_from_quaternion
 from geometry_msgs.msg import Twist
 from vive_ai.utils.point2d import Point2
-from vive_ai.consts.consts import *
 
 
 def angle_to_unitary(angle_rad):
