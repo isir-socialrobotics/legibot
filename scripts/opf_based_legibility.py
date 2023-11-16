@@ -3,8 +3,8 @@ import os
 import cv2
 import numpy as np
 
-from legibot.legibility_core import calc_legibility
-from legibot.projection_api import make_grid, make_homog, draw_projected_grid, project_points
+from legibot.legibility_score import calc_legibility
+from legibot.projection_utils import make_grid, make_homog, draw_projected_grid, project_points
 from vive_ai.logger.logger_factory import logger
 from legibot.colors import BGR_RED, BGR_GREEN, BGR_BLUE, BGR_YELLOW, BGR_WHITE, BGR_BLACK, BGR_ORANGE
 
@@ -13,12 +13,11 @@ from legibot.cv_utils import capture_click
 from legibot.kf_tracking import KalmanFilter2D
 from legibot.opf_utils import background_subtraction_mask, detect_objects
 
-cap = None
 frame_index = -1
 output_dir = ""
 
 
-frame2 = None
+frame = None
 prvs = None
 flow = None
 projection_grid = make_grid()
@@ -28,11 +27,12 @@ robot_tracker = KalmanFilter2D()
 robot_pred_tracker = KalmanFilter2D()
 
 while True:
-    frame2 = read_frame_file()  # read source frame
-    # frame2 = read_frame_ros()
-    if frame2 is None or frame_index % 8 != 0: continue
+    frame = read_frame_file()  # read source frame
+    # frame = read_frame_ros()
+    if frame is None: continue
+    frame_index += 1
 
-    next = cv2.GaussianBlur(cv2.cvtColor(frame2, cv2.COLOR_BGR2GRAY), (5, 5), 0)
+    next = cv2.GaussianBlur(cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY), (5, 5), 0)
     if prvs is None:
         prvs = next
         continue
@@ -45,7 +45,7 @@ while True:
     prvs = next
 
     mag, ang = cv2.cartToPolar(flow[..., 0], flow[..., 1])
-    flow_hsv = np.ones_like(frame2) * 100
+    flow_hsv = np.ones_like(frame) * 100
     flow_hsv[..., 0] = ang * 180 / np.pi / 2
     flow_hsv[..., 2] = cv2.normalize(mag, None, 0, 255, cv2.NORM_MINMAX)
     flow_bgr = cv2.cvtColor(flow_hsv, cv2.COLOR_HSV2BGR)
@@ -70,7 +70,7 @@ while True:
         logger.polygon(robot_pred_track_world, color=BGR_RED, legend='robot_track_world')
 
         potential_goals_uv = [(0.19, 0.39), (0.43, 0.68), (0.74, 0.36)]  # (x, y) normalized
-        potential_goals_uv = [(int(g[0] * frame2.shape[1]), int(g[1] * frame2.shape[0])) for g in potential_goals_uv]
+        potential_goals_uv = [(int(g[0] * frame.shape[1]), int(g[1] * frame.shape[0])) for g in potential_goals_uv]
         potential_goals_world = project_points(potential_goals_uv, projection_homog_inv)
 
         dist_to_goals = [np.linalg.norm(np.array(g) - robot_track_world[-1]) for g in potential_goals_world]
@@ -93,10 +93,10 @@ while True:
         # draw bbox around detected objects
         for cnt in object_contours:
             x, y, w, h = cv2.boundingRect(cnt)
-            cv2.rectangle(frame2, (x, y), (x + w, y + h), BGR_RED, 2)
+            cv2.rectangle(frame, (x, y), (x + w, y + h), BGR_RED, 2)
 
-        cv2.circle(frame2, (int(Robot_CoM[0]), int(Robot_CoM[1])), 5, (200, 0, 200), -1)
-        cv2.arrowedLine(frame2, (int(Robot_CoM[0]), int(Robot_CoM[1])), (int(pred_x), int(pred_y)), (0, 255, 0), 2)
+        cv2.circle(frame, (int(Robot_CoM[0]), int(Robot_CoM[1])), 5, (200, 0, 200), -1)
+        cv2.arrowedLine(frame, (int(Robot_CoM[0]), int(Robot_CoM[1])), (int(pred_x), int(pred_y)), (0, 255, 0), 2)
 
         for ii, g in enumerate(potential_goals_uv):
             # draw arrow from Robot_CoM to goal
@@ -104,19 +104,19 @@ while True:
             if ii == argmin_dist:
                 color = (235, 206, 135)
             if len(object_contours) > 0:
-                cv2.arrowedLine(frame2, (int(Robot_CoM[0]), int(Robot_CoM[1])), g, (100, 200, 50), 2)
-                cv2.circle(frame2, g, 25, color, 5)
-                cv2.putText(frame2, f"{legib_values[ii]:.2f}", g,
+                cv2.arrowedLine(frame, (int(Robot_CoM[0]), int(Robot_CoM[1])), g, (100, 200, 50), 2)
+                cv2.circle(frame, g, 25, color, 5)
+                cv2.putText(frame, f"{legib_values[ii]:.2f}", g,
                             cv2.FONT_HERSHEY_SIMPLEX, 1, BGR_WHITE, 2)
         # =============================================================
 
     # ================== VISUALIZATION ==================
-    draw_projected_grid(frame2, projection_grid, projection_homog, BGR_GREEN)
+    draw_projected_grid(frame, projection_grid, projection_homog, BGR_GREEN)
     cv2.imshow('flow', flow_bgr)
     cv2.namedWindow('frame', cv2.WINDOW_AUTOSIZE)
     cv2.setMouseCallback('frame', capture_click, (projection_homog_inv,))
-    cv2.imshow('frame', frame2)
-    cv2.imwrite(os.path.join(output_dir, f"frame-{frame_index}.png"), frame2)
+    cv2.imshow('frame', frame)
+    cv2.imwrite(os.path.join(output_dir, f"frame-{frame_index}.png"), frame)
     cv2.imwrite(os.path.join(output_dir, f"flow-{frame_index}.png"), flow_bgr)
     # ====================================================
     k = cv2.waitKey(20) & 0xff

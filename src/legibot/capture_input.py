@@ -4,9 +4,13 @@ import numpy as np
 import rospy
 from sensor_msgs.msg import Image
 
+cap = None
+frame = None
+cap_frame_stride = 8  # read every X frame
+
 
 def read_frame_file():
-    global frame_index, cap, output_dir
+    global frame, cap
     if cap is None:
         # video_source = os.path.join("/home/javad/Videos/legibot", "observer-2023-10-30_19-04-07.avi")
         # video_source = os.path.join("/home/javad/Videos/legibot", "observer-2023-10-31_14-32-19.avi")
@@ -19,17 +23,18 @@ def read_frame_file():
         if not os.path.exists(output_dir): os.makedirs(output_dir)
         cap = cv2.VideoCapture(video_source)
 
-    ret, frame = cap.read()
+    for i in range(cap_frame_stride):
+        ret, frame = cap.read()
     if not ret: return None
-    frame_index += 1
     return frame
 
 
 def read_frame_ros():
-    global frame_index, cap, output_dir
+    global frame, frame_index, cap, output_dir
+
     def image_callback(msg):
-        global frame_index, frame2
-        frame2 = np.frombuffer(msg.data, dtype=np.uint8).reshape(msg.height, msg.width, -1)
+        global frame_index, frame
+        frame = np.frombuffer(msg.data, dtype=np.uint8).reshape(msg.height, msg.width, -1)
         # frame2 = cv2.cvtColor(frame2, cv2.COLOR_BGR2RGB)
         frame_index += 1
         print(f"New frame: {frame_index}")
@@ -40,4 +45,4 @@ def read_frame_ros():
         output_dir = os.path.join("/home/javad/workspace/catkin_ws/src/legibot", "output", "ros")
         if not os.path.exists(output_dir): os.makedirs(output_dir)
 
-    return frame2
+    return frame
