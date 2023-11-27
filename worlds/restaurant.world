@@ -80,14 +80,28 @@
     <include>
       <uri>model://table</uri>
       <name>table_2</name>
-      <pose>2 -8 0 0 0 1.57</pose>
+      <pose>-2.5 -4 0 0 0 1.57</pose>
       <static>true</static>
     </include>
 
     <include>
       <uri>model://person_standing</uri>
       <name>person_2</name>
-      <pose>3.0 -8 0.1 0 0 -1.5707</pose>
+      <pose>3.0 -8 0.16 0 0 -1.5707</pose>
+      <static>true</static>
+    </include>
+
+    <include>
+      <uri>model://table</uri>
+      <name>table_3</name>
+      <pose>2 -8 0 0 0 1.57</pose>
+      <static>true</static>
+    </include>
+
+    <include>
+      <uri>model://person_standing</uri>
+      <name>person_3</name>
+      <pose>-3.7 -4 0.16 0 0 1.5707</pose>
       <static>true</static>
     </include>
 

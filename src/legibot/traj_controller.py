@@ -1,13 +1,10 @@
-#!/usr/bin/env python
-
-import sys
 import math
 import rospy
-import argparse
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Point
 from tf.transformations import euler_from_quaternion
 from geometry_msgs.msg import Twist
+from vive_ai.utils.point2d import Point2
 
 
 def angle_to_unitary(angle_rad):
@@ -26,12 +23,32 @@ def sign(x):
     return 0
 
 
+class OdomHistory:
+    def __init__(self, max_size=500):
+        self.max_size = max_size
+        self.history = []
+
+    def append(self, msg: Odometry):
+        if len(self.history) > 0:
+            last_msg = self.history[-1]
+            if msg.header.stamp - last_msg.header.stamp < rospy.Duration(0.5):
+                return
+        # point = Point2(msg.pose.pose.position.x, msg.pose.pose.position.y)
+        self.history.append(msg)
+        if len(self.history) > self.max_size:
+            self.history.pop(0)
+
+    def get_trajectory(self):
+        return [Point2(msg.pose.pose.position.x, msg.pose.pose.position.y) for msg in self.history]
+
+
 class TrajectoryController:
     def __init__(self, trajectory):
         self.trajectory = trajectory
         self.current_index = 0
         self.robot_xy = None
         self.robot_orien = -10
+        self.odom_history = OdomHistory()
 
         self.odom_sub = rospy.Subscriber('/odom', Odometry, self.odom_callback)
         self.cmd_vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
@@ -43,6 +60,7 @@ class TrajectoryController:
                                                   msg.pose.pose.orientation.y,
                                                   msg.pose.pose.orientation.z,
                                                   msg.pose.pose.orientation.w])[2]
+        self.odom_history.append(msg)
 
     def get_current_waypoint(self):
         return self.trajectory[self.current_index]
@@ -52,7 +70,7 @@ class TrajectoryController:
         dx = waypoint.x - pose.x
         dy = waypoint.y - pose.y
         dist = (dx**2 + dy**2)**0.5
-        goal_threshold = 0.1
+        goal_threshold = 0.25
         return dist < goal_threshold
 
     def __calc_command__(self) -> Twist:
@@ -74,11 +92,11 @@ class TrajectoryController:
         # check for rotation
         if abs(math.degrees(angle_to_unitary(angle_to_subgoal - self.robot_orien))) > 10:
             command.linear.x = 0
-            command.angular.z = 0.3 * sign(angle_to_unitary(angle_to_subgoal - self.robot_orien))
+            command.angular.z = 0.2 * sign(angle_to_unitary(angle_to_subgoal - self.robot_orien))
 
         else:
-            command.linear.x = 0.5
-            command.angular.z = angle_to_unitary(angle_to_subgoal - self.robot_orien) * 0.1  # some small rotation
+            command.linear.x = 0.3
+            command.angular.z = angle_to_unitary(angle_to_subgoal - self.robot_orien) * 0.1  # small orien correction
 
         return command
 
@@ -86,17 +104,3 @@ class TrajectoryController:
         command = self.__calc_command__()
         self.cmd_vel_pub.publish(command)
         self.rate.sleep()
-
-
-if __name__ == "__main__":
-    rospy.init_node('trajectory_controller')
-    args = argparse.ArgumentParser()
-    goal = rospy.get_param("/trajectory_controller/goal", "()")
-    goal = eval(goal)
-    if len(goal) != 2:
-        print("Exiting Trajectory Controller: Invalid Goal")
-        sys.exit(1)
-    trajectory = [Point(goal[0], goal[1], 0)]
-    controller = TrajectoryController(trajectory)
-    while not rospy.is_shutdown():
-        controller.exec()
