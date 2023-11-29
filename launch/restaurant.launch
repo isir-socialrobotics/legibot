@@ -33,6 +33,7 @@
     <param name="goal" value="(-2.6,-7.12)"/>
   </node>
 
-  <node name="observer_recorder" pkg="legibot" type="record_observer.py" output="screen" />
+<!--   <node name="observer_recorder" pkg="legibot" type="record_observer.py" output="screen" /> -->
+<!--   <node name="legibility" pkg="legibot" type="opf_based_legibility.py" output="screen" /> -->
 
 </launch>

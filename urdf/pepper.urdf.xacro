@@ -26,6 +26,14 @@
     </inertial>
   </link>
 
+  <joint name="imu_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="imu_link"/>
+    <origin xyz="0.0 0 0.068" rpy="0 0 0"/>
+  </joint>
+
+  <link name="imu_link"/>
+
   <joint name="camera_joint" type="fixed">
     <origin xyz="-0.05 -0.065 1.16" rpy="0 0 0"/>
     <parent link="base_link"/>
