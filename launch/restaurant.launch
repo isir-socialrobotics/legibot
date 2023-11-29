@@ -1,8 +1,6 @@
 <?xml version="1.0"?>
 <launch>
 
-  <arg name="run_trajectory_controller" default="false" doc="Should Python trajectory controller be run?" />
-
   <include file="$(find gazebo_ros)/launch/empty_world.launch">
     <arg name="world_name" value="$(find legibot)/worlds/restaurant.world"/>
     <arg name="paused" value="false"/>
@@ -31,9 +29,15 @@
 
   <include file="$(find teleop_twist_joy)/launch/teleop.launch" />
 
-  <node name="robot_controller" pkg="legibot" type="robot_controller.py" output="screen" if="$(arg run_trajectory_controller)">
-    <param name="goal" value="(-2.6,-7.12)"/>
-  </node>
+  <include file="$(find legibot)/launch/robot_controller.launch" >
+<!--     <arg name="x" value="-2.6"/> -->
+<!--     <arg name="y" value="-7.12"/> -->
+<!--     <arg name="yaw" value="0.0"/> -->
+  </include>
+
+<!--   <node name="robot_controller" pkg="legibot" type="robot_controller.py" output="screen"> -->
+<!--     <param name="goal" value="(-2.6,-7.12)"/> -->
+<!--   </node> -->
 
 <!--   <node name="observer_recorder" pkg="legibot" type="record_observer.py" output="screen" /> -->
 <!--   <node name="legibility" pkg="legibot" type="opf_based_legibility.py" output="screen" /> -->

@@ -1,8 +1,13 @@
 <?xml version="1.0"?>
 <launch>
 
-  <node name="robot_controller" pkg="legibot" type="robot_controller.py" output="screen" clear_params="true">
+  <!--  Python: High level goal controller -->
+
+  <node name="robot_controller_py" pkg="legibot" type="robot_controller.py" output="screen">
       <param name="goal" value="(-2.6,-7.1)" type="str"/>
   </node>
+
+    <!--  C++  -->
+    <node name="robot_controller_c" pkg="legibot" type="legibot_robot_controller_node" output="screen" />
 
 </launch>
