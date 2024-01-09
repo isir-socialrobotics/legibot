@@ -6,10 +6,12 @@ import numpy as np
 from src.legibot.planners.apf import APF
 from src.legibot.planners.rrt import RRT
 from src.legibot.planners.dwa import DWA
-from src.legibot.planners.utils import plot_path, plot_field
+from src.legibot.planners.utils import plot_path, plot_field, plot_path_cv
 
 x0 = [0.1, 0.1]
-goals = np.array([[0.9, 0.9], [0.9, 0.1]])
+goals = np.array([[0.9, 0.9],
+                  [0.9, 0.1],
+                  [1, 0.4]])
 goal_idx = 0
 
 obstacles = np.array([[0.5, 0.55, 0.1], [0.2, 0.8, 0.1]])
@@ -48,5 +50,7 @@ plt.tight_layout()
 # plot_path(plan_apf_legible, goals, obstacles, axs[0])
 # plot_path(plan_apf_illegible, goals, obstacles, axs[1])
 # plot_field(field, axs[2])
-plot_path(plan_dwa, goals, obstacles, axs, "DWA")
-plt.show()
+# plot_path(plan_dwa, goals, obstacles, axs, "DWA")
+# plt.show()
+
+plot_path_cv(plan_dwa, goals, obstacles)

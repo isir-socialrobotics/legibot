@@ -1,5 +1,8 @@
 # Dynamic Window Approach (DWA) for planning with legibility
+import cv2
 import numpy as np
+
+from legibot.planners.utils import plot_path_cv
 
 
 class DWA:
@@ -7,56 +10,89 @@ class DWA:
         self.goals = goals
         self.goal_idx = goal_idx
         self.obstacles = obstacles
-        self.optimal_speed_mps = 2
-        self.obstacle_radius = kwargs.get("obstacle_radius", 0.4)
-        self.W = {"goal": kwargs.get("w_goal", 1),
-                  "obstacle": kwargs.get("w_obstacle", 0.2),
-                  "speed": kwargs.get("w_speed", 1)}
 
-    def sample_cost(self, xy0, xy1, dt):
-        goal_vec = self.goals[self.goal_idx] - xy0
-        new_vec = xy1 - xy0
-        cost_goal = 1-np.dot(goal_vec, new_vec) /(np.linalg.norm(goal_vec) * np.linalg.norm(new_vec) + 1e-6)
+        # DWA parameters
+        self.optimal_speed_mps = kwargs.get("optimal_speed", 2.0)  # m/s (robot should keep this speed)
+        self.obstacle_radius = kwargs.get("obstacle_radius", 0.4)  # m (robot should keep this distance from obstacles)
+        self.W = {"goal": kwargs.get("w_goal", 1),
+                  "obstacle": kwargs.get("w_obstacle", 0.1),
+                  "speed": kwargs.get("w_speed", 1),
+                  "legibility": kwargs.get("w_legibility", 0.5)}
+
+    def cost_task(self, pos, vel, dt, goal_xy):
+        goal_vec = goal_xy - pos
+        next_xy = pos + vel * dt
+
+        # cost of deviating from goal direction
+        cost_goal = 1-np.dot(goal_vec, vel) /(np.linalg.norm(goal_vec) * np.linalg.norm(vel) + 1e-6)
 
         min_dist = np.inf
         for obstacle in self.obstacles:
-            dist = np.linalg.norm(xy1 - obstacle[:2]) - obstacle[2]
+            dist = np.linalg.norm(next_xy - obstacle[:2]) - obstacle[2]
             if dist < 0:
                 min_dist = 0
                 break
             if dist < min_dist and dist < self.obstacle_radius:
                 min_dist = dist
-        cost_obstacle = 1/(min_dist + 1e-6)
+        # cost of getting too close to obstacles
+        cost_obstacle = 1/(min_dist + 1e-3)
 
-        cost_speed = np.abs(np.linalg.norm(xy1 - xy0) / dt - self.optimal_speed_mps)
+        # cost of deviating from optimal speed
+        cost_speed = (np.linalg.norm(vel) - self.optimal_speed_mps) ** 2
 
         return cost_goal * self.W["goal"] + cost_obstacle * self.W["obstacle"] + cost_speed * self.W["speed"]
 
-    def step(self, x, dt):
-        min_cost = np.inf
-        vw = np.array([0, 0])
+    def cost_legibility(self, pos, vel, dt, goal_xy, illegible_v_stars):
+        cost = 0
+        for v_star in illegible_v_stars:
+            cost += np.dot(vel, v_star) / (np.linalg.norm(vel) * np.linalg.norm(v_star) + 1e-6)
+        return cost / len(illegible_v_stars)
+
+    def __search_optimal_velocity__(self, x, dt, goal, illegible_v_stars=[]):
         cost_map = []
+        min_cost = np.inf
+        v_star = np.zeros(2)
         for theta in np.linspace(0, 2 * np.pi, 32):
             for speed in np.linspace(0, self.optimal_speed_mps, 10):
-                xy1 = x + np.array([np.cos(theta), np.sin(theta)]) * speed * dt
-                cost = self.sample_cost(x, xy1, dt)
-                if np.isnan(cost) or cost > 1000:
-                    cost = 1000
-                cost_map.append((xy1[0], xy1[1], cost))
-                if cost < min_cost:
-                    min_cost = cost
-                    vw = np.array([speed, theta])
+                vel = np.array([np.cos(theta), np.sin(theta)]) * speed
+                cost = self.cost_task(x, vel, dt, goal)
+                if len(illegible_v_stars) > 0:
+                    cost += self.cost_legibility(x, vel, dt, goal, illegible_v_stars) * self.W["legibility"]
+                cost = np.clip(cost, 0, 1000)
+                if cost > min_cost:
+                    continue
+                min_cost = cost
+                v_star = vel
+        return v_star, cost_map
 
-        return x + np.array([np.cos(vw[1]), np.sin(vw[1])]) * vw[0] * dt, cost_map
+    def step(self, x, dt):
+        # find optimal velocity for each potential goal
+        other_goals = [self.goals[i] for i in range(len(self.goals)) if i != self.goal_idx]
+        v_star_other_goals = []
+        for goal in other_goals:
+            v_star_other, cost_map = self.__search_optimal_velocity__(x, dt, goal)
+            v_star_other_goals.append(v_star_other)
+        v_star, cost_map = self.__search_optimal_velocity__(x, dt, self.goals[self.goal_idx], v_star_other_goals)
+
+        return x + v_star * dt, [[x, x + v * dt] for v in v_star_other_goals], cost_map
 
     def get_plan(self, x0, dt=0.05, H=100):
         x = x0
         plan = [x0]
-        for t in range(H):
-            new_x, cost_map = self.step(x, dt)
+        illegible_vectors = []
+        for t in np.arange(0, H * dt, dt):
+            new_x, illegible_vecs_t, cost_map = self.step(x, dt)
+            illegible_vectors.append(illegible_vecs_t)
             plan.append(new_x)
             x = new_x
+            img = plot_path_cv(plan, self.goals, self.obstacles)  # visualize with OpenCV
+            [cv2.arrowedLine(img, (int(x[0]*512), int(x[1]*512)), (int(y[0]*512), int(y[1]*512)), (0, 100, 255), 2) for x, y in illegible_vecs_t]
+            cv2.imshow('image', cv2.flip(img, 0))
+            cv2.waitKey(0)
+
             if np.linalg.norm(x - self.goals[self.goal_idx]) < 0.1:
                 break
+
+        plan.append(self.goals[self.goal_idx])
         return plan
 

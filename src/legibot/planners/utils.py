@@ -59,8 +59,9 @@ def plot_path_cv(path, goals, obstacles):
     # plt.legend(['path', 'initial point', 'goal'])
     # plt.axis('equal')
 
-    cv2.imshow('image', cv2.flip(img, 0))
-    cv2.waitKey(0)
+    # cv2.imshow('image', cv2.flip(img, 0))
+    # cv2.waitKey(0)
+    return img
 
 
 def plot_field(field, ax=None):
