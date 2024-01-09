@@ -10,24 +10,23 @@ def plot_path(path, goals, obstacles, ax=None, title=""):
         ax = plt.gca()
 
     # plot the path
-    ax.plot([x[0] for x in path], [x[1] for x in path], '-or')
+    ax.plot([x[0] for x in path], [x[1] for x in path], '-or', label='Path')
 
     # plot initial point
-    ax.plot(path[0][0], path[0][1], 'or', label='initial point')
+    ax.plot(path[0][0], path[0][1], 'ob', label='Initial Point', markersize=10)
     ax.set_title(title)
 
     for goal in goals:
         # show goals with x marks
-        ax.plot(goal[0], goal[1], 'xg')
+        ax.plot(goal[0], goal[1], 'xg', markersize=10,
+                label='Goal' if 'Goal' not in ax.get_legend_handles_labels()[1] else "")
 
     for obstacle in obstacles:
-        # plt.plot(obstacle[0], obstacle[1], 'ok')
-        circle = plt.Circle((obstacle[0], obstacle[1]), obstacle[2], color='k')
+        circle = plt.Circle((obstacle[0], obstacle[1]), obstacle[2], label='Obstacle' if 'Obstacle' not in ax.get_legend_handles_labels()[1] else "",
+                            color='k', hatch='///', fill=False)
         ax.add_artist(circle)
-        # add to legend
 
-    # show the plot
-    ax.legend(['path', 'initial point', 'goal'])
+    ax.legend()
     ax.axis('equal')
     # plt.show()
 
