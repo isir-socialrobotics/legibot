@@ -10,7 +10,7 @@ def plot_path(path, goals, obstacles, ax=None, title=""):
         ax = plt.gca()
 
     # plot the path
-    ax.plot([x[0] for x in path], [x[1] for x in path], '-r')
+    ax.plot([x[0] for x in path], [x[1] for x in path], '-or')
 
     # plot initial point
     ax.plot(path[0][0], path[0][1], 'or', label='initial point')

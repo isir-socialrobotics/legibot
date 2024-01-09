@@ -72,7 +72,7 @@ def path(x, tree):
     # return the path
     return path
 
-def rrt(x0, goal, obstacles, max_iter=1000, delta=0.1, epsilon=0.1):
+def RRT(x0, goal, obstacles, max_iter=1000, delta=0.1, epsilon=0.1):
     """
     :param x0: initial point
     :param goal: goal point
@@ -116,5 +116,5 @@ if __name__ == '__main__':
     obstacles = [[0.5, 0.5, 0.1], [0.2, 0.8, 0.1]]
 
     # find a path from x0 to goal1
-    path1 = rrt(x0, goal1, obstacles)
+    path1 = RRT(x0, goal1, obstacles)
     print(path1)

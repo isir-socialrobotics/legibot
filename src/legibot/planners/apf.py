@@ -1,24 +1,24 @@
 # Artificial Potential Field (APF) legible field
 
 import numpy as np
-from src.legibot.legible_fields.utils import plot_path, plot_path_cv, plot_field
+from src.legibot.planners.utils import plot_path, plot_path_cv, plot_field
 
 
 class APF:
-    def __init__(self, goals, goal_idx=0, obstacles=[], goal_radius=0.1, obstacle_radius=0.1, eta=1.5, rho=0.5):
+    def __init__(self, goals, goal_idx=0, obstacles=[], **kwargs):
         self.goals = goals
         self.goal_idx = goal_idx
         self.other_goals_idx = [i for i in range(len(goals)) if i != goal_idx]
         self.obstacles = obstacles
-        self.goal_radius = goal_radius
-        self.obstacle_radius = obstacle_radius
-        self.eta = eta  # goal force weight
-        self.rho = rho  # obstacle force weight
+        self.goal_radius = kwargs.get("goal_radius", 0.1)
+        self.obstacle_radius = kwargs.get("obstacle_radius", 0.1)
+        self.eta = kwargs.get("eta", 1.5)  # goal force weight
+        self.rho = kwargs.get("rho", 0.5)  # obstacle force weight
         self.max_step = 0.04
         self.closest_points_visited = []
         self.enable_legibility_force = True
 
-    def get_obstacle_force(self, x):
+    def __get_obstacle_force__(self, x):
         # initialize the obstacle force
         obstacle_force = np.zeros(2)
 
@@ -34,7 +34,7 @@ class APF:
         # return the obstacle force
         return obstacle_force
 
-    def get_goal_force(self, x):
+    def __get_goal_force__(self, x):
         # initialize the goal force
         goal_force = np.zeros(2)
 
@@ -44,7 +44,7 @@ class APF:
         # return the goal force
         return goal_force
 
-    def get_other_goals_force(self, x):
+    def __get_other_goals_force__(self, x):
         # initialize the other goals force
         other_goals_force = np.zeros(2)
 
@@ -56,19 +56,19 @@ class APF:
         # return the other goals force
         return other_goals_force
 
-    def get_field_vec(self, x):
+    def __get_field_vec__(self, x):
         # initialize the legible field
         field_vector = np.zeros(2)
 
         # add the goal force
-        field_vector += self.get_goal_force(x)
+        field_vector += self.__get_goal_force__(x)
 
         # add the obstacle force
-        field_vector += self.get_obstacle_force(x)
+        field_vector += self.__get_obstacle_force__(x)
 
         # add the other goals force
         if self.enable_legibility_force:
-            field_vector += self.get_other_goals_force(x)
+            field_vector += self.__get_other_goals_force__(x)
 
         # add a very small random force
         field_vector += np.random.normal(0, 0.01, 2)
@@ -80,14 +80,14 @@ class APF:
         # return the legible field
         return field_vector
 
-    def is_collision(self, x):
+    def __is_collision__(self, x):
         # check if x is in collision with any of the obstacles
         for obstacle in self.obstacles:
             if (x[0] - obstacle[0]) ** 2 + (x[1] - obstacle[1]) ** 2 < obstacle[2] ** 2:
                 return True
         return False
 
-    def post_process(self, plan):
+    def __post_process__(self, plan):
         # remove oscillations
         i = 0
         while i < len(plan) - 2:
@@ -105,12 +105,12 @@ class APF:
         iter = 0
         while np.linalg.norm(plan[-1] - self.goals[self.goal_idx]) > self.goal_radius:
             # get the legible field at the current point
-            legible_field = self.get_field_vec(plan[-1])
+            legible_field = self.__get_field_vec__(plan[-1])
 
             # get the next point
             next_point = plan[-1] + legible_field
 
-            if self.is_collision(next_point):
+            if self.__is_collision__(next_point):
                 return plan
 
             plan.append(next_point)
@@ -123,7 +123,7 @@ class APF:
 
         else:
             plan.append(self.goals[self.goal_idx])
-            plan = self.post_process(plan)
+            plan = self.__post_process__(plan)
             print('Goal reached')
 
 
