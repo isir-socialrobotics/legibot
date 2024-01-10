@@ -45,6 +45,7 @@
      <origin xyz="0 0 0" rpy="1.57 0 1.57"/>
       <geometry>
        <mesh filename="package://turtlebot3_description/meshes/sensors/r200.dae" />
+<!--       <mesh filename="/home/javad/workspace/catkin_ws/src/gazebo-realsense/models/realsense_camera/meshes/realsense.dae" />-->
       </geometry>
     </visual>
     <collision>

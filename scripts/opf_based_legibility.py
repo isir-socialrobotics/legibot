@@ -3,9 +3,11 @@ import os
 import cv2
 import numpy as np
 
+from vive_ai.logger.ros_debugger import RosDebugger
+from vive_ai.core.ros_manager import RosNodeManager
+
 from legibot.legibility_score import calc_legibility
 from legibot.projection_utils import make_grid, make_homog, draw_projected_grid, project_points
-from vive_ai.logger.logger_factory import logger
 from legibot.colors import BGR_RED, BGR_GREEN, BGR_BLUE, BGR_YELLOW, BGR_WHITE, BGR_BLACK, BGR_ORANGE
 
 from legibot.capture_input import read_frame_file
@@ -22,6 +24,10 @@ prvs = None
 flow = None
 projection_grid = make_grid()
 projection_homog, projection_homog_inv = make_homog()
+
+logger = RosDebugger()
+ros_node_manager = RosNodeManager()
+ros_node_manager.connect()
 
 robot_tracker = KalmanFilter2D()
 robot_pred_tracker = KalmanFilter2D()
@@ -67,16 +73,16 @@ while True:
 
         # project potential goals to world coordinates
         robot_pred_track_world = project_points(robot_pred_tracker.trajectory, projection_homog_inv)
-        logger.polygon(robot_pred_track_world, color=BGR_RED, legend='robot_track_world')
+        logger.polygon(robot_pred_track_world + robot_pred_track_world[::-1],
+                       color=BGR_RED, ns='robot_track_world')
 
         potential_goals_uv = [(0.19, 0.39), (0.43, 0.68), (0.74, 0.36)]  # (x, y) normalized
         potential_goals_uv = [(int(g[0] * frame.shape[1]), int(g[1] * frame.shape[0])) for g in potential_goals_uv]
         potential_goals_world = project_points(potential_goals_uv, projection_homog_inv)
 
-        dist_to_goals = [np.linalg.norm(np.array(g) - robot_track_world[-1]) for g in potential_goals_world]
-        argmin_dist = np.argmin(dist_to_goals)
-        legib_values = calc_legibility(potential_goals_world, robot_track_world)
-        logger.plot(legib_values[0], legend='g1', topic='/legibility/g1')
+        legib_values = calc_legibility(potential_goals_world, robot_pred_track_world)
+        goal_star = np.argmax(legib_values)
+        logger.plot(legib_values, legend=[f'L{i}' for i in range(len(legib_values))], topic='/legibility')
 
         # ======================= VISUALIZATION =======================
         flow_bgr = 255 - flow_bgr
@@ -101,7 +107,7 @@ while True:
         for ii, g in enumerate(potential_goals_uv):
             # draw arrow from Robot_CoM to goal
             color = BGR_ORANGE
-            if ii == argmin_dist:
+            if ii == goal_star:
                 color = (235, 206, 135)
             if len(object_contours) > 0:
                 cv2.arrowedLine(frame, (int(Robot_CoM[0]), int(Robot_CoM[1])), g, (100, 200, 50), 2)

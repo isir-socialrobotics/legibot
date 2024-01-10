@@ -8,6 +8,6 @@
   </node>
 
     <!--  C++  -->
-    <node name="robot_controller_c" pkg="legibot" type="legibot_robot_controller_node" output="screen" />
+<!--     <node name="robot_controller_c" pkg="legibot" type="legibot_robot_controller_node" output="screen" /> -->
 
 </launch>
