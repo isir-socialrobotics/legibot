@@ -1,13 +1,11 @@
-# Dynamic Window Approach (DWA) for planning with legibility
 import os
-import cv2
 from datetime import datetime
 import numpy as np
 
-from legibot.planners.utils import plot_path_cv
+from legibot.utils.viz_utils import Visualizer
 
 
-class DWA:
+class LocalPlanner:
     def __init__(self, goals, obstacles, goal_idx, **kwargs):
         self.goals = goals
         self.goal_idx = goal_idx
@@ -20,6 +18,7 @@ class DWA:
                   "obstacle": kwargs.get("w_obstacle", 0.08),
                   "speed": kwargs.get("w_speed", 1),
                   "legibility": kwargs.get("w_legibility", 0.5)}
+        self.n_steps = kwargs.get("n_steps", 3)
 
         self.out_dir = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../../out"))
 
@@ -72,13 +71,26 @@ class DWA:
     def step(self, x, dt):
         # find optimal velocity for each potential goal
         other_goals = [self.goals[i] for i in range(len(self.goals)) if i != self.goal_idx]
-        v_star_other_goals = []
+        optimal_plan_other_goals = []
         for goal in other_goals:
-            v_star_other, cost_map = self.__search_optimal_velocity__(x, dt, goal)
-            v_star_other_goals.append(v_star_other)
-        v_star, cost_map = self.__search_optimal_velocity__(x, dt, self.goals[self.goal_idx], v_star_other_goals)
+            x_last = x
+            optimal_plan_goal_i = [x]
+            for step in range(self.n_steps):
+                v_star_other, cost_map = self.__search_optimal_velocity__(x_last, dt, goal)
+                Visualizer().add_arrow(x_last, x_last + v_star_other * dt, color=(0, 0, 255))
+                # Visualizer().show(0)
+                x_last = x_last + v_star_other * dt
+                optimal_plan_goal_i.append(x_last)
+            optimal_plan_other_goals.append(optimal_plan_goal_i)
+        optimal_plan_other_goals = np.array(optimal_plan_other_goals)
 
-        return x + v_star * dt, [[x, x + v * dt] for v in v_star_other_goals], cost_map
+        x_last = x
+        for step in range(1):
+            v_star, cost_map = self.__search_optimal_velocity__(x, dt, self.goals[self.goal_idx],
+                                                                optimal_plan_other_goals[:, step+1]-optimal_plan_other_goals[:, step])
+            x_last = x_last + v_star * dt
+
+        return x_last, cost_map
 
     def get_plan(self, x0, dt=0.05, H=100):
         x = x0
@@ -87,17 +99,14 @@ class DWA:
 
         now = datetime.now()
         for t in np.arange(0, H * dt, dt):
-            new_x, illegible_vecs_t, cost_map = self.step(x, dt)
-            illegible_vectors.append(illegible_vecs_t)
+            new_x, cost_map = self.step(x, dt)
             plan.append(new_x)
-            x = new_x
-            img = plot_path_cv(plan, self.goals, self.obstacles)  # visualize with OpenCV
-            [cv2.arrowedLine(img, (int(x[0]*512), int(x[1]*512)), (int(y[0]*512), int(y[1]*512)), (0, 100, 255), 2) for x, y in illegible_vecs_t]
-            cv2.imshow('image', cv2.flip(img, 0))
-            cv2.imwrite(os.path.join(self.out_dir, f"{now.strftime('%Y%m%d-%H%M%S')}-{round(t, 4):.4f}.png"),
-                        cv2.flip(img, 0))
-            cv2.waitKey(10)
 
+            Visualizer().add_arrow(x, new_x, color=(255, 0, 0))
+            Visualizer().show(delay=100)
+            Visualizer().save(os.path.join(self.out_dir, f"{now.strftime('%Y%m%d-%H%M%S')}-{round(t, 4):.4f}.png"))
+
+            x = new_x
             if np.linalg.norm(x - self.goals[self.goal_idx]) < 0.1:
                 break
 

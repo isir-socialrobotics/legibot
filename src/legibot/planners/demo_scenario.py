@@ -1,12 +1,8 @@
-import random
-import math
 import matplotlib.pyplot as plt
 import numpy as np
 
-from src.legibot.planners.apf import APF
-from src.legibot.planners.rrt import RRT
-from src.legibot.planners.dwa import DWA
-from src.legibot.planners.utils import plot_path, plot_field, plot_path_cv
+from src.legibot.planners.local_planner import LocalPlanner
+from legibot.utils.viz_utils import plot_path, Visualizer
 
 x0 = [0.1, 0.1]
 goals = np.array([
@@ -23,6 +19,9 @@ obstacles = np.array([
                       ])
 obstacle_radius = 0.1
 goal_radius = 0.1
+
+Visualizer().draw_obstacles(obstacles)
+Visualizer().draw_goals(goals)
 
 # plan_rrt = RRT(x0, goals[goal_idx], obstacles)
 # plot_path(plan_rrt, goals, obstacles, title="RRT")
@@ -44,7 +43,7 @@ goal_radius = 0.1
 #             field[j, i, 0] = f[0]
 #             field[j, i, 1] = -f[1]
 
-dwa_planner = DWA(goals, obstacles, goal_idx)
+dwa_planner = LocalPlanner(goals, obstacles, goal_idx)
 plan_dwa = dwa_planner.get_plan(np.array([0.1, 0.1]))
 
 fig, axs = plt.subplots(1, 1, figsize=(6, 4))
@@ -52,11 +51,11 @@ fig, axs = plt.subplots(1, 1, figsize=(6, 4))
 # Adjust layout
 plt.tight_layout()
 
-# plot_path_cv(plan, goals, obstacles)
 # plot_path(plan_apf_legible, goals, obstacles, axs[0])
 # plot_path(plan_apf_illegible, goals, obstacles, axs[1])
 # plot_field(field, axs[2])
 plot_path(plan_dwa, goals, obstacles, axs, "DWA")
 plt.show()
 
-plot_path_cv(plan_dwa, goals, obstacles)
+Visualizer().draw_path(plan_dwa)
+Visualizer().show()

@@ -1,7 +1,6 @@
 # Artificial Potential Field (APF) legible field
 
 import numpy as np
-from src.legibot.planners.utils import plot_path, plot_path_cv, plot_field
 
 
 class APF:

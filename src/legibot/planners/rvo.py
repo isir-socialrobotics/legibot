@@ -2,8 +2,6 @@
 
 import numpy as np
 
-from legibot.planners.utils import plot_path, plot_path_cv, plot_field
-
 
 class RVO:
     def rvo(self, position, velocity, other_positions, other_velocities, radius, time_horizon):
