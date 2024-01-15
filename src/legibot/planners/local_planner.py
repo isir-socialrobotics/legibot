@@ -80,14 +80,18 @@ class LocalPlanner:
                 Visualizer().add_arrow(x_last, x_last + v_star_other * dt, color=(0, 0, 255))
                 # Visualizer().show(0)
                 x_last = x_last + v_star_other * dt
-                optimal_plan_goal_i.append(x_last)
+                optimal_plan_goal_i.append(v_star_other)
             optimal_plan_other_goals.append(optimal_plan_goal_i)
-        optimal_plan_other_goals = np.array(optimal_plan_other_goals)
+
+        if len(optimal_plan_other_goals) > 0:
+            optimal_plan_other_goals = np.array(optimal_plan_other_goals)
+        else:
+            optimal_plan_other_goals = np.empty((len(other_goals), self.n_steps, 0))
 
         x_last = x
         for step in range(1):
             v_star, cost_map = self.__search_optimal_velocity__(x, dt, self.goals[self.goal_idx],
-                                                                optimal_plan_other_goals[:, step+1]-optimal_plan_other_goals[:, step])
+                                                                optimal_plan_other_goals[:, step])
             x_last = x_last + v_star * dt
 
         return x_last, cost_map

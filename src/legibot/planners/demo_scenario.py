@@ -48,13 +48,10 @@ plan_dwa = dwa_planner.get_plan(np.array([0.1, 0.1]))
 
 fig, axs = plt.subplots(1, 1, figsize=(6, 4))
 
-# Adjust layout
-plt.tight_layout()
-
 # plot_path(plan_apf_legible, goals, obstacles, axs[0])
 # plot_path(plan_apf_illegible, goals, obstacles, axs[1])
 # plot_field(field, axs[2])
-plot_path(plan_dwa, goals, obstacles, axs, "DWA")
+plot_path(plan_dwa, goals, obstacles, axs, "Legibility-Aware Local Planner")
 plt.show()
 
 Visualizer().draw_path(plan_dwa)
