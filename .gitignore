@@ -147,7 +147,7 @@ ENV/
 
 # User-specific stuff
 .idea/
-
+out/*
 
 ## LaTeX template
 ## Core latex/pdflatex auxiliary files:
@@ -166,3 +166,5 @@ ENV/
 *.synctex.gz
 *.pdf
 *.thm
+*.dvi
+*.blg

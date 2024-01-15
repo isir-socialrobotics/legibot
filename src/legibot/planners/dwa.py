@@ -1,5 +1,7 @@
 # Dynamic Window Approach (DWA) for planning with legibility
+import os
 import cv2
+from datetime import datetime
 import numpy as np
 
 from legibot.planners.utils import plot_path_cv
@@ -14,10 +16,12 @@ class DWA:
         # DWA parameters
         self.optimal_speed_mps = kwargs.get("optimal_speed", 2.0)  # m/s (robot should keep this speed)
         self.obstacle_radius = kwargs.get("obstacle_radius", 0.4)  # m (robot should keep this distance from obstacles)
-        self.W = {"goal": kwargs.get("w_goal", 1),
-                  "obstacle": kwargs.get("w_obstacle", 0.1),
+        self.W = {"goal": kwargs.get("w_goal", 0.8),
+                  "obstacle": kwargs.get("w_obstacle", 0.08),
                   "speed": kwargs.get("w_speed", 1),
                   "legibility": kwargs.get("w_legibility", 0.5)}
+
+        self.out_dir = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../../out"))
 
     def cost_task(self, pos, vel, dt, goal_xy):
         goal_vec = goal_xy - pos
@@ -52,7 +56,7 @@ class DWA:
         cost_map = []
         min_cost = np.inf
         v_star = np.zeros(2)
-        for theta in np.linspace(0, 2 * np.pi, 32):
+        for theta in np.linspace(0, 2 * np.pi, 72):
             for speed in np.linspace(0, self.optimal_speed_mps, 10):
                 vel = np.array([np.cos(theta), np.sin(theta)]) * speed
                 cost = self.cost_task(x, vel, dt, goal)
@@ -80,6 +84,8 @@ class DWA:
         x = x0
         plan = [x0]
         illegible_vectors = []
+
+        now = datetime.now()
         for t in np.arange(0, H * dt, dt):
             new_x, illegible_vecs_t, cost_map = self.step(x, dt)
             illegible_vectors.append(illegible_vecs_t)
@@ -88,7 +94,9 @@ class DWA:
             img = plot_path_cv(plan, self.goals, self.obstacles)  # visualize with OpenCV
             [cv2.arrowedLine(img, (int(x[0]*512), int(x[1]*512)), (int(y[0]*512), int(y[1]*512)), (0, 100, 255), 2) for x, y in illegible_vecs_t]
             cv2.imshow('image', cv2.flip(img, 0))
-            cv2.waitKey(0)
+            cv2.imwrite(os.path.join(self.out_dir, f"{now.strftime('%Y%m%d-%H%M%S')}-{round(t, 4):.4f}.png"),
+                        cv2.flip(img, 0))
+            cv2.waitKey(10)
 
             if np.linalg.norm(x - self.goals[self.goal_idx]) < 0.1:
                 break
