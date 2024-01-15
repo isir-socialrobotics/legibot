@@ -1,12 +1,11 @@
 import os.path
-import random
 import sys
 import torch
 import argparse
 import cv2
 import numpy as np
 
-from legibot.basic_math import pairwise_intersections
+from legibot.utils.basic_math import pairwise_intersections
 # from scipy.optimize._lsq.dogbox import find_intersection
 sys.path.append('/home/javad/workspace/RAFT/core')  # fixme
 from raft import RAFT

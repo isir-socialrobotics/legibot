@@ -1,5 +1,5 @@
 import cv2
-from legibot.projection_utils import project_points
+from legibot.utils.projection_utils import project_points
 
 
 def capture_click(event, x, y, flags, param):

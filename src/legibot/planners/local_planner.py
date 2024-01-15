@@ -13,9 +13,9 @@ class LocalPlanner:
 
         # DWA parameters
         self.optimal_speed_mps = kwargs.get("optimal_speed", 2.0)  # m/s (robot should keep this speed)
-        self.obstacle_radius = kwargs.get("obstacle_radius", 0.4)  # m (robot should keep this distance from obstacles)
-        self.W = {"goal": kwargs.get("w_goal", 0.8),
-                  "obstacle": kwargs.get("w_obstacle", 0.08),
+        self.obstacle_radius = kwargs.get("obstacle_radius", 0.38)  # m (robot should keep this distance from obstacles)
+        self.W = {"goal": kwargs.get("w_goal", 0.9),
+                  "obstacle": kwargs.get("w_obstacle", 0.07),
                   "speed": kwargs.get("w_speed", 1),
                   "legibility": kwargs.get("w_legibility", 0.5)}
         self.n_steps = kwargs.get("n_steps", 3)
@@ -74,7 +74,7 @@ class LocalPlanner:
         optimal_plan_other_goals = []
         for goal in other_goals:
             x_last = x
-            optimal_plan_goal_i = [x]
+            optimal_plan_goal_i = []
             for step in range(self.n_steps):
                 v_star_other, cost_map = self.__search_optimal_velocity__(x_last, dt, goal)
                 Visualizer().add_arrow(x_last, x_last + v_star_other * dt, color=(0, 0, 255))

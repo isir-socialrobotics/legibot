@@ -11,7 +11,7 @@ from sensor_msgs.msg import Image, CameraInfo
 import sys
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
-from legibot.raft_optical_flow import RaftModel #, vizualize_optical_flow
+from legibot.optical_flow.raft_optical_flow import RaftModel #, vizualize_optical_flow
 
 
 class ROSVideoRecorder:

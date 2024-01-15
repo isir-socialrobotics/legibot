@@ -2,7 +2,7 @@ import numpy as np
 
 
 def min_cost(a, b) -> float:
-    """cost of travelling from point a to b (euclidean distance)"""
+    """cost of travelling from point a to b (Euclidean distance)"""
     return np.linalg.norm(b - a)
 
 

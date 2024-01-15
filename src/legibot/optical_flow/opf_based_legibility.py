@@ -6,14 +6,14 @@ import numpy as np
 from vive_ai.logger.ros_debugger import RosDebugger
 from vive_ai.core.ros_manager import RosNodeManager
 
-from legibot.legibility_score import calc_legibility
-from legibot.projection_utils import make_grid, make_homog, draw_projected_grid, project_points
-from legibot.colors import BGR_RED, BGR_GREEN, BGR_BLUE, BGR_YELLOW, BGR_WHITE, BGR_BLACK, BGR_ORANGE
+from legibot.legibility_dragan import calc_legibility
+from legibot.utils.projection_utils import make_grid, make_homog, draw_projected_grid, project_points
+from legibot.utils.colors import BGR_RED, BGR_GREEN, BGR_WHITE, BGR_ORANGE
 
 from legibot.capture_input import read_frame_file
-from legibot.cv_utils import capture_click
-from legibot.kf_tracking import KalmanFilter2D
-from legibot.opf_utils import background_subtraction_mask, detect_objects
+from legibot.utils.cv_utils import capture_click
+from legibot.utils.kf_tracking import KalmanFilter2D
+from legibot.optical_flow.opf_utils import background_subtraction_mask, detect_objects
 
 frame_index = -1
 output_dir = ""

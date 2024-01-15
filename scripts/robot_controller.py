@@ -11,13 +11,9 @@ import time
 sys.path.append('/home/javad/workspace/catkin_ws/src/cvae-based-legible-motion-generation')
 from bezier import Bezier
 
-from vive_ai.utils.point2d import Point2
-from legibot.colors import RGB_PURPLE, RGB_RED, RGB_ORANGE
-
 # rospy.init_node('robot_controller')
 from vive_ai.core.ros_manager import RosNodeManager
 RosNodeManager().connect(node_name="PathPlanner")
-from vive_ai.logger.logger_factory import logger
 
 goal = rospy.get_param("/robot_controller/goal", "(-2.6,-7.1)")
 goal = eval(goal)

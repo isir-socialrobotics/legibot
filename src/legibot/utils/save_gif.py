@@ -11,6 +11,6 @@ def make_gif(frame_filenames, gif_filename):
 
 
 if __name__ == '__main__':
-    frames = glob.glob("/home/javad/workspace/legibot/out/20240115-121518-*.png")
+    frames = glob.glob("/home/javad/workspace/legibot/out/20240115-175250-*.png")
     frames.sort()
-    make_gif(frames, "/home/javad/workspace/legibot/out/20240115-121518")
+    make_gif(frames, "/home/javad/workspace/legibot/out/20240115-175250")

@@ -7,8 +7,8 @@ from legibot.utils.viz_utils import plot_path, Visualizer
 x0 = [0.1, 0.1]
 goals = np.array([
                   [0.9, 0.9],
-                  [0.3, 0.9],
-                  # [0.9, 0.1],
+                  # [0.3, 0.9],
+                  [0.9, 0.1],
                   [0.95, 0.4]
                   ])
 goal_idx = 0
