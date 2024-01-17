@@ -399,7 +399,7 @@
   <joint name="LElbowYaw" type="fixed">
     <parent link="LBicep"/>
     <child link="LElbow"/>
-    <origin rpy="0 -0.157079 0" xyz="0.1812 0.015 0.00013"/>
+    <origin rpy="-1 -0.157079 0" xyz="0.1812 0.015 0.00013"/>
     <axis xyz="1.0 0 0"/>
     <limit effort="5.428" lower="-2.08567" upper="2.08567" velocity="7.33998"/>
   </joint>
@@ -542,7 +542,7 @@
   <joint name="RElbowYaw" type="fixed">
     <parent link="RBicep"/>
     <child link="RElbow"/>
-    <origin rpy="0 -0.157079 0" xyz="0.1812 -0.015 0.00013"/>
+    <origin rpy="1.25 -0.157079 0" xyz="0.1812 -0.015 0.00013"/>
     <axis xyz="1.0 0 0"/>
     <limit effort="5.428" lower="-2.08567" upper="2.08567" velocity="7.33998"/>
   </joint>
@@ -1403,6 +1403,38 @@
     <axis xyz="0 0 1.0"/>
     <mimic joint="RHand" multiplier="0.872665" offset="0"/>
   </joint>
+
+  <joint name="RBottleInHand" type="fixed">
+    <parent link="r_wrist"/>
+    <child link="wine_bottle_link"/>
+<!--    <axis xyz="0 0 1.0"/>-->
+    <origin rpy="0.2 0 0" xyz="0.07 -0.20 -0.055"/>
+  </joint>
+
+  <link name="wine_bottle_link">
+    <inertial>
+      <mass value="2e-06"/>
+      <inertia ixx="1e-9" ixy="0" ixz="0.0" iyy="1e-9" iyz="-0.0" izz="1e-9"/>
+    </inertial>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+          <cylinder>
+              <radius>0.04</radius>
+              <length>0.30</length>
+            </cylinder>
+        </geometry>
+    </collision>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://legibot/models/wine_bottle/meshes/bottle.dae" scale="0.02 0.02 0.02"/>
+      </geometry>
+    </visual>
+  </link>
+
+
+
   <link name="LFinger31_link">
     <inertial>
       <mass value="2e-06"/>

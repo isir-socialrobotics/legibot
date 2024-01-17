@@ -2,10 +2,10 @@
 <robot name="observer_person_d">
   <link name="base_link">
     <visual>
-      <origin xyz="0 0 0" rpy="0 0 0"/> <!-- Adjust the camera position and orientation -->
+      <origin xyz="0 0 0" rpy="0 0 0"/>
       <geometry>
         <!-- <box size="0.1 0.1 0.1"/> -->
-        <mesh filename="/home/javad/.gazebo/models/person_standing/meshes/standing.dae"/> <!-- fixme -->
+        <mesh filename="package://legibot/models/person_standing/meshes/standing.dae"/>
       </geometry>
     </visual>
 

@@ -14,7 +14,7 @@
   </include>
 
   <include file="$(find legibot)/launch/spawn_observer.launch">
-    <arg name="x" value="-3.4"/>
+    <arg name="x" value="-3.7"/>
     <arg name="y" value="-8.5"/>
     <arg name="yaw" value="2.3"/>
     <arg name="obj_name" value="observer1" />
