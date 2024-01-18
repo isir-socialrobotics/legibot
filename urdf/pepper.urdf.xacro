@@ -1,8 +1,5 @@
 <?xml version="1.0" ?>
-<robot name="turtlebot3_pepper_v" xmlns:xacro="http://ros.org/wiki/xacro">
-  <xacro:include filename="$(find turtlebot3_description)/urdf/common_properties.xacro"/>
-  <xacro:include filename="$(find turtlebot3_description)/urdf/turtlebot3_waffle.gazebo.xacro"/>
-
+<robot name="pepper_modified" xmlns:xacro="http://ros.org/wiki/xacro">
   <xacro:property name="r200_cam_rgb_px" value="0.005"/>
   <xacro:property name="r200_cam_rgb_py" value="0.018"/>
   <xacro:property name="r200_cam_rgb_pz" value="0.013"/>
@@ -68,7 +65,23 @@
   </joint>
   <link name="camera_rgb_frame"/>
 
-<!-- Links From Turtle -->
+  <gazebo>
+    <plugin filename="libgazebo_ros_diff_drive.so" name="differential_drive_controller">
+      <alwaysOn>true</alwaysOn>
+      <updateRate>20</updateRate>
+      <leftJoint>wheel_left_joint</leftJoint>
+      <rightJoint>wheel_right_joint</rightJoint>
+      <wheelSeparation>0.4</wheelSeparation>
+      <wheelDiameter>0.2</wheelDiameter>
+      <torque>0.1</torque>
+      <commandTopic>cmd_vel</commandTopic>
+      <odometryTopic>odom</odometryTopic>
+      <odometryFrame>odom</odometryFrame>
+      <robotBaseFrame>base_link</robotBaseFrame>
+    </plugin>
+  </gazebo>
+
+<!-- Links from Turtlebot -->
   <joint name="wheel_left_joint" type="continuous">
     <parent link="base_link"/>
     <child link="wheel_left_link"/>
@@ -77,13 +90,12 @@
   </joint>
 
   <link name="wheel_left_link">
-    <visual>
-      <origin xyz="0 0 0" rpy="1.57 0 0"/>
-      <geometry>
-        <mesh filename="package://turtlebot3_description/meshes/wheels/left_tire.stl" scale="0.001 0.001 0.001"/>
-      </geometry>
-      <material name="dark"/>
-    </visual>
+<!--    <visual>-->
+<!--      <origin xyz="0 0 0" rpy="1.57 0 0"/>-->
+<!--      <geometry>-->
+<!--      </geometry>-->
+<!--      <material name="dark"/>-->
+<!--    </visual>-->
 
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0"/>
@@ -109,13 +121,12 @@
   </joint>
 
   <link name="wheel_right_link">
-    <visual>
-      <origin xyz="0 0 0" rpy="1.57 0 0"/>
-      <geometry>
-        <mesh filename="package://turtlebot3_description/meshes/wheels/right_tire.stl" scale="0.001 0.001 0.001"/>
-      </geometry>
-      <material name="dark"/>
-    </visual>
+<!--    <visual>-->
+<!--      <origin xyz="0 0 0" rpy="1.57 0 0"/>-->
+<!--      <geometry>-->
+<!--      </geometry>-->
+<!--      <material name="dark"/>-->
+<!--    </visual>-->
 
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0"/>
@@ -183,7 +194,7 @@
   <joint name="base_link_fixedjoint" type="fixed">
     <parent link="base_link"/>
     <child link="torso"/>
-    <origin rpy="0 0 0" xyz="-0.1 0 0.83"/>
+    <origin rpy="0 0 0" xyz="-0.1 0 0.86"/>
     <axis xyz="0 0 0"/>
   </joint>
   <link name="torso">

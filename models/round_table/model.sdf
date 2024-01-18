@@ -4,21 +4,21 @@
         <static>true</static>
         <link name="link">
             <collision name="collision">
-                <pose>0 0 0.65 0 0 0</pose>
+                <pose>0 0 0.48 0 0 0</pose>
                 <geometry>
                     <cylinder>
-                        <radius>1.02</radius>
-                        <length>1.3</length>
+                        <radius>0.76</radius>
+                        <length>0.975</length>
                     </cylinder>
                 </geometry>
             </collision>
 
             <visual name="visual">
-                <pose>0 0 0.1 1.57 0 0</pose>
+                <pose>0 0 0.075 1.57 0 0</pose>
                 <geometry>
                     <mesh>
                         <uri>model://round_table/meshes/Table.dae</uri>
-                        <scale>100 100 100</scale>
+                        <scale>75 75 75</scale>
                     </mesh>
                 </geometry>
                     <script>

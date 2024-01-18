@@ -1,3 +1,5 @@
+src/third_party/
+
 .vscode
 devel/
 logs/
