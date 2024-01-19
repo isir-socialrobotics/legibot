@@ -4,7 +4,7 @@ from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Point
 from tf.transformations import euler_from_quaternion
 from geometry_msgs.msg import Twist
-from vive_ai.utils.point2d import Point2
+from legibot.utils.point2d import Point2
 
 
 def angle_to_unitary(angle_rad):
@@ -63,6 +63,8 @@ class TrajectoryController:
         self.odom_history.append(msg)
 
     def get_current_waypoint(self):
+        if self.current_index >= len(self.trajectory):
+            return self.trajectory[-1]
         return self.trajectory[self.current_index]
 
     @staticmethod
@@ -92,7 +94,7 @@ class TrajectoryController:
         # check for rotation
         if abs(math.degrees(angle_to_unitary(angle_to_subgoal - self.robot_orien))) > 10:
             command.linear.x = 0
-            command.angular.z = 0.2 * sign(angle_to_unitary(angle_to_subgoal - self.robot_orien))
+            command.angular.z = 0.8 * sign(angle_to_unitary(angle_to_subgoal - self.robot_orien))
 
         else:
             command.linear.x = 1.5
