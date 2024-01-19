@@ -67,6 +67,9 @@ class TrajectoryController:
             return self.trajectory[-1]
         return self.trajectory[self.current_index]
 
+    def reset(self):
+        self.current_index = 0
+
     @staticmethod
     def is_reached(waypoint, pose: Point):
         dx = waypoint.x - pose.x
@@ -80,7 +83,7 @@ class TrajectoryController:
         if self.robot_xy is None:
             return command
         if self.current_index >= len(self.trajectory):
-            print("Trajectory finished")
+            # print("Trajectory finished")
             return command
         if self.is_reached(self.get_current_waypoint(), self.robot_xy):
             self.current_index += 1

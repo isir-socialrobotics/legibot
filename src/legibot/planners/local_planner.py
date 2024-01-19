@@ -10,10 +10,15 @@ class LocalPlanner:
         self.goals = goals
         self.goal_idx = goal_idx
         self.obstacles = obstacles
+        self.enable_vis = kwargs.get("verbose", True)
+
+        if self.enable_vis:
+            Visualizer().draw_obstacles(obstacles)
+            Visualizer().draw_goals(goals)
 
         # DWA parameters
         self.optimal_speed_mps = kwargs.get("optimal_speed", 2.0)  # m/s (robot should keep this speed)
-        self.obstacle_radius = kwargs.get("obstacle_radius", 0.38)  # m (robot should keep this distance from obstacles)
+        self.obstacle_radius = kwargs.get("obstacle_radius", 0.6)  # m (robot should keep this distance from obstacles)
         self.W = {"goal": kwargs.get("w_goal", 0.9),
                   "obstacle": kwargs.get("w_obstacle", 0.07),
                   "speed": kwargs.get("w_speed", 1),
@@ -22,6 +27,13 @@ class LocalPlanner:
 
         self.out_dir = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../../out"))
 
+    def obstacle_task(self, x):
+        d = np.sqrt(np.square(self.obstacles[:, 0] - x[0])+ np.square(self.obstacles[:, 1] - x[1]))
+        d = d - self.obstacles[:, 2] - self.obstacle_radius
+        d = d.min()
+        d = max(d, 0)
+        return d
+
     def cost_task(self, pos, vel, dt, goal_xy):
         goal_vec = goal_xy - pos
         next_xy = pos + vel * dt
@@ -29,16 +41,7 @@ class LocalPlanner:
         # cost of deviating from goal direction
         cost_goal = 1-np.dot(goal_vec, vel) /(np.linalg.norm(goal_vec) * np.linalg.norm(vel) + 1e-6)
 
-        min_dist = np.inf
-        for obstacle in self.obstacles:
-            dist = np.linalg.norm(next_xy - obstacle[:2]) - obstacle[2]
-            if dist < 0:
-                min_dist = 0
-                break
-            if dist < min_dist and dist < self.obstacle_radius:
-                min_dist = dist
-        # cost of getting too close to obstacles
-        cost_obstacle = 1/(min_dist + 1e-3)
+        cost_obstacle = 1/(self.obstacle_task(next_xy) + 1e-3)
 
         # cost of deviating from optimal speed
         cost_speed = (np.linalg.norm(vel) - self.optimal_speed_mps) ** 2
@@ -77,8 +80,9 @@ class LocalPlanner:
             optimal_plan_goal_i = []
             for step in range(self.n_steps):
                 v_star_other, cost_map = self.__search_optimal_velocity__(x_last, dt, goal)
-                Visualizer().add_arrow(x_last, x_last + v_star_other * dt, color=(0, 0, 255))
-                # Visualizer().show(0)
+                if self.enable_vis:
+                    Visualizer().add_arrow(x_last, x_last + v_star_other * dt, color=(0, 0, 255))
+                    # Visualizer().show(2)
                 x_last = x_last + v_star_other * dt
                 optimal_plan_goal_i.append(v_star_other)
             optimal_plan_other_goals.append(optimal_plan_goal_i)
@@ -106,14 +110,17 @@ class LocalPlanner:
             new_x, cost_map = self.step(x, dt)
             plan.append(new_x)
 
-            Visualizer().add_arrow(x, new_x, color=(255, 0, 0))
-            Visualizer().show(delay=100)
-            Visualizer().save(os.path.join(self.out_dir, f"{now.strftime('%Y%m%d-%H%M%S')}-{round(t, 4):.4f}.png"))
+            if self.enable_vis:
+                Visualizer().add_arrow(x, new_x, color=(255, 0, 0))
+                Visualizer().save(os.path.join(self.out_dir, f"{now.strftime('%Y%m%d-%H%M%S')}-{round(t, 4):.4f}.png"))
 
             x = new_x
             if np.linalg.norm(x - self.goals[self.goal_idx]) < 0.1:
                 break
 
         plan.append(self.goals[self.goal_idx])
+        if self.enable_vis:
+            Visualizer().draw_path(plan)
+            Visualizer().show(delay=100)
         return plan
 

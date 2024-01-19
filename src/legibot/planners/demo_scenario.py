@@ -20,8 +20,8 @@ obstacles = np.array([
 obstacle_radius = 0.1
 goal_radius = 0.1
 
-Visualizer().draw_obstacles(obstacles)
-Visualizer().draw_goals(goals)
+# Visualizer().draw_obstacles(obstacles)
+# Visualizer().draw_goals(goals)
 
 # plan_rrt = RRT(x0, goals[goal_idx], obstacles)
 # plot_path(plan_rrt, goals, obstacles, title="RRT")

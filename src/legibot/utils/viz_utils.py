@@ -11,8 +11,19 @@ class Visualizer(metaclass=Singleton):
 
         # OpenCV
         if self.mode == "opencv":
-            self.scale = 512
-            self.img = self.__blank_image__()
+            self.img = self.__blank_image__(1000, 1000)
+
+        # transform matrix
+        self.scale = self.img.shape[0] / 20
+        offset_x = self.img.shape[0] / 2
+        offset_y = self.img.shape[1] / 2
+        self.transform_matrix = np.array([[self.scale, 0, offset_x],
+                                          [0, self.scale, offset_y],
+                                          ])
+
+    def transform(self, x, y):
+        t_xy = np.dot(self.transform_matrix, np.array([x, y, 1]))
+        return t_xy[0], t_xy[1]
 
     def show(self, delay=0, title="image"):
         if self.mode == "opencv":
@@ -23,37 +34,39 @@ class Visualizer(metaclass=Singleton):
         if self.mode == "opencv":
             cv2.imwrite(filename, cv2.flip(self.img, 0))
 
-    def __blank_image__(self):
+    def __blank_image__(self, width, height):
         if self.mode == "opencv":
-            return np.ones((self.scale, self.scale, 3), np.uint8) * 255
+            return np.ones((height, width, 3), np.uint8) * 255
 
     def draw_obstacles(self, obstacles):
         if self.mode == "opencv":
             for obstacle in obstacles:
-                cv2.circle(self.img, (int(obstacle[0]*self.scale),
-                                        int(obstacle[1]*self.scale)),
+                obs_xy = self.transform(obstacle[0], obstacle[1])
+                cv2.circle(self.img, (int(obs_xy[0]), int(obs_xy[1])),
                                         int(obstacle[2]*self.scale),
                            (0, 0, 0), -1)
 
     def draw_goals(self, goals):
         if self.mode == "opencv":
             for goal in goals:
-                cv2.drawMarker(self.img, (int(goal[0]*self.scale),
-                                          int(goal[1]*self.scale)),
-                                          (0, 255, 0), cv2.MARKER_CROSS,
-                                          20, 5)
+                g_xy = self.transform(goal[0], goal[1])
+                cv2.drawMarker(self.img, (int(g_xy[0]), int(g_xy[1])),
+                               (0, 255, 0), cv2.MARKER_CROSS, 20, 5)
 
     def draw_path(self, path):
         if self.mode == "opencv":
             for i in range(len(path)-1):
-                cv2.line(self.img, (int(path[i][0]*self.scale), int(path[i][1]*self.scale)),
-                                    (int(path[i+1][0]*self.scale), int(path[i+1][1]*self.scale)),
+                p_i_xy = self.transform(path[i][0], path[i][1])
+                p_i1_xy = self.transform(path[i+1][0], path[i+1][1])
+                cv2.line(self.img, (int(p_i_xy[0]), int(p_i_xy[1])), (int(p_i1_xy[0]), int(p_i1_xy[1])),
                                     (255, 0, 0), 5)
 
     def add_arrow(self, xy, uv, color=(0, 100, 255)):
         if self.mode == "opencv":
-            cv2.arrowedLine(self.img, (int(xy[0]*self.scale), int(xy[1]*self.scale)),
-                                      (int(uv[0]*self.scale), int(uv[1]*self.scale)),
+            xy_trans = self.transform(xy[0], xy[1])
+            uv_trans = self.transform(uv[0], uv[1])
+            cv2.arrowedLine(self.img, (int(xy_trans[0]), int(xy_trans[1])),
+                                      (int(uv_trans[0]), int(uv_trans[1])),
                                       color, 2)
 
 

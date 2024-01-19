@@ -9,6 +9,8 @@ from nav_msgs.msg import Odometry
 from tf.transformations import euler_from_quaternion
 
 sys.path.append(os.path.abspath(os.path.join(__file__, os.path.pardir, os.path.pardir, 'src')))
+from legibot.planners.local_planner import LocalPlanner
+from legibot.static_map import observers, obstacles
 from legibot.traj_controller import TrajectoryController
 from legibot.utils.bezier import Bezier
 
@@ -21,21 +23,33 @@ class MainPlanner:
         self.goal = g
         self.robot_xyt = None
         self._controller = TrajectoryController([])
+        self._local_planner = LocalPlanner(np.array([g] + observers), np.array(obstacles), 0)
+
         # self.goal_publisher = rospy.Publisher('/pepper/goals', PoseArray, queue_size=10)
         self._odom_sub = rospy.Subscriber('/odom', Odometry, self.odom_callback)
+
 
     # hardcode the trajectory
     def generate_trajectory(self):
         sub_goals = [[-3, 1], [-1, 0], [1, -1.5]]  # legible
         # sub_goals = [[-3, -1], [-0.7, -2], [-1.5, -4]]  # illegible
         traj_curve = get_bezier_path(self.robot_xyt[:2], self.goal, sub_goals)
-        self._controller.trajectory = [Point(p[0], p[1], 0) for p in traj_curve]
+        self.hardcode_trajectory = [Point(p[0], p[1], 0) for p in traj_curve]
+
+        self._local_planner.optimal_speed_mps = 1
+        plan = self._local_planner.get_plan(self.robot_xyt[:2], dt=1, H=100)
+        self._controller.trajectory = [Point(p[0], p[1], 0) for p in plan]
+        self._controller.reset()
 
     def exec_loop(self):
         while True:
             if self.robot_xyt is None:
                 print("Waiting for robot position")
+                time.sleep(3)
                 continue
+
+            # next_x, _ = self._local_planner.step(self.robot_xyt[:2], dt=0.2)
+            # self._controller.trajectory = [Point(next_x[0], next_x[1], 0)]
             self._controller.exec()
             # self.goal_publisher.publish(self.goal)
 
