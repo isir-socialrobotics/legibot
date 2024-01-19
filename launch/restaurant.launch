@@ -27,19 +27,14 @@
 <!--     <arg name="obj_name" value="observer2" /> -->
 <!--   </include> -->
 
-  <include file="$(find teleop_twist_joy)/launch/teleop.launch" />
-
-  <include file="$(find legibot)/launch/robot_controller.launch" >
-<!--     <arg name="x" value="-2.6"/> -->
-<!--     <arg name="y" value="-7.12"/> -->
-<!--     <arg name="yaw" value="0.0"/> -->
-  </include>
-
-<!--   <node name="robot_controller" pkg="legibot" type="robot_controller.py" output="screen"> -->
-<!--     <param name="goal" value="(-2.6,-7.12)"/> -->
-<!--   </node> -->
-
+<!--   <include file="$(find teleop_twist_joy)/launch/teleop.launch" /> -->
 <!--   <node name="observer_recorder" pkg="legibot" type="record_observer.py" output="screen" /> -->
+
+ <node name="robot_controller_py" pkg="legibot" type="hardcoded_planner.py" output="screen">
+      <param name="goal" value="(-2.6,-7.1)" type="str"/>
+  </node>
+
+<!--   <include file="$(find legibot)/launch/robot_controller.launch" /> -->
 <!--   <node name="legibility" pkg="legibot" type="opf_based_legibility.py" output="screen" /> -->
 
 </launch>

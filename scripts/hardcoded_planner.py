@@ -1,19 +1,23 @@
 #!/usr/bin/env python
-
+import os
 import sys
+import time
 import rospy
 import numpy as np
 from geometry_msgs.msg import Point, Pose
-from legibot.traj_controller import TrajectoryController
 from geometry_msgs.msg import PoseArray
-import time
+legibot_lib = os.path.abspath(os.path.join(__file__, os.path.pardir, os.path.pardir, 'src'))
+print(legibot_lib)
+sys.path.append(legibot_lib)
+from legibot.traj_controller import TrajectoryController
+from legibot.utils.colors import RGB_PURPLE, RGB_RED
 
-sys.path.append('/home/javad/workspace/catkin_ws/src/cvae-based-legible-motion-generation')
-from bezier import Bezier
+from legibot.utils.bezier import Bezier
 
-# rospy.init_node('robot_controller')
-from vive_ai.core.ros_manager import RosNodeManager
-RosNodeManager().connect(node_name="PathPlanner")
+try:
+    rospy.init_node('hardcoded_planner')
+except rospy.exceptions.ROSException:
+    pass
 
 goal = rospy.get_param("/robot_controller/goal", "(-2.6,-7.1)")
 goal = eval(goal)
@@ -56,15 +60,14 @@ for i in range(len(goal_array.poses)):
 # rate = rospy.Rate(5)
 
 while True:
-    # logger.info(f"Trajectory Controller Goal: {controller.get_current_waypoint()}")
+    rospy.loginfo(f"Trajectory Controller Goal: {controller.get_current_waypoint()}")
+    traj = controller.odom_history.get_trajectory() + controller.odom_history.get_trajectory()[::-1]
+    controller.exec()
+
+    # goal_publisher.publish(goal_array)
+
     # logger.points([Point2(p.x, p.y) for p in controller.trajectory], color=RGB_RED, namespace="Waypoints", radius=0.06)
-    # traj = controller.odom_history.get_trajectory() + controller.odom_history.get_trajectory()[::-1]
     # logger.polygon(traj, color=RGB_PURPLE, namespace="Trajectory")
-    # controller.exec()
-
-    goal_publisher.publish(goal_array)
-    print("Published goal array")
-
     # for ii, corners in enumerate(tables_4_corners):
     #     logger.polygon(corners, color=RGB_ORANGE, namespace=f"Table_{ii}")
 

@@ -95,8 +95,8 @@ class TrajectoryController:
             command.angular.z = 0.2 * sign(angle_to_unitary(angle_to_subgoal - self.robot_orien))
 
         else:
-            command.linear.x = 0.3
-            command.angular.z = angle_to_unitary(angle_to_subgoal - self.robot_orien) * 0.1  # small orien correction
+            command.linear.x = 1.5
+            command.angular.z = angle_to_unitary(angle_to_subgoal - self.robot_orien) * 0.5  # small orien correction
 
         return command
 
