@@ -16,6 +16,8 @@ class LocalPlanner:
             Visualizer().draw_obstacles(obstacles)
             Visualizer().draw_goals(goals)
 
+        self.robot_radius = 0.3  # pepper?
+
         # DWA parameters
         self.optimal_speed_mps = kwargs.get("optimal_speed", 2.0)  # m/s (robot should keep this speed)
         self.obstacle_radius = kwargs.get("obstacle_radius", 0.6)  # m (robot should keep this distance from obstacles)
@@ -27,12 +29,13 @@ class LocalPlanner:
 
         self.out_dir = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../../out"))
 
-    def obstacle_task(self, x):
+    def obstacle_cost(self, x):
         d = np.sqrt(np.square(self.obstacles[:, 0] - x[0])+ np.square(self.obstacles[:, 1] - x[1]))
-        d = d - self.obstacles[:, 2] - self.obstacle_radius
-        d = d.min()
-        d = max(d, 0)
-        return d
+        d = d - self.obstacles[:, 2] - self.robot_radius
+        d = max(d.min(), 0)
+        if d > self.obstacle_radius:
+            return 0
+        return 1 / (d + 1e-3)
 
     def cost_task(self, pos, vel, dt, goal_xy):
         goal_vec = goal_xy - pos
@@ -41,7 +44,7 @@ class LocalPlanner:
         # cost of deviating from goal direction
         cost_goal = 1-np.dot(goal_vec, vel) /(np.linalg.norm(goal_vec) * np.linalg.norm(vel) + 1e-6)
 
-        cost_obstacle = 1/(self.obstacle_task(next_xy) + 1e-3)
+        cost_obstacle = self.obstacle_cost(next_xy)
 
         # cost of deviating from optimal speed
         cost_speed = (np.linalg.norm(vel) - self.optimal_speed_mps) ** 2
