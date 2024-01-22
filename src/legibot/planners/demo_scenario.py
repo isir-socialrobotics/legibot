@@ -44,7 +44,7 @@ goal_radius = 0.1
 #             field[j, i, 1] = -f[1]
 
 dwa_planner = LocalPlanner(goals, obstacles, goal_idx)
-plan_dwa = dwa_planner.get_plan(np.array([0.1, 0.1]))
+plan_dwa = dwa_planner.full_plan(np.array([0.1, 0.1]))
 
 fig, axs = plt.subplots(1, 1, figsize=(6, 4))
 

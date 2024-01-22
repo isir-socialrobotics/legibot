@@ -23,7 +23,7 @@ class LocalPlanner:
         self.obstacle_radius = kwargs.get("obstacle_radius", 0.6)  # m (robot should keep this distance from obstacles)
         self.W = {"goal": kwargs.get("w_goal", 0.9),
                   "obstacle": kwargs.get("w_obstacle", 0.07),
-                  "speed": kwargs.get("w_speed", 1),
+                  "speed": kwargs.get("w_speed", 0.4),
                   "legibility": kwargs.get("w_legibility", 0.5)}
         self.n_steps = kwargs.get("n_steps", 3)
 
@@ -35,7 +35,7 @@ class LocalPlanner:
         d = max(d.min(), 0)
         if d > self.obstacle_radius:
             return 0
-        return 1 / (d + 1e-3)
+        return 0.3/ (d+ 1e-2) # np.exp(-d)
 
     def cost_task(self, pos, vel, dt, goal_xy):
         goal_vec = goal_xy - pos
@@ -43,6 +43,7 @@ class LocalPlanner:
 
         # cost of deviating from goal direction
         cost_goal = 1-np.dot(goal_vec, vel) /(np.linalg.norm(goal_vec) * np.linalg.norm(vel) + 1e-6)
+        cost_goal += np.linalg.norm(next_xy - goal_xy) / np.linalg.norm(goal_xy - pos)
 
         cost_obstacle = self.obstacle_cost(next_xy)
 
@@ -58,10 +59,13 @@ class LocalPlanner:
         return cost / len(illegible_v_stars)
 
     def __search_optimal_velocity__(self, x, dt, goal, illegible_v_stars=[]):
-        cost_map = []
         min_cost = np.inf
         v_star = np.zeros(2)
-        for theta in np.linspace(0, 2 * np.pi, 72):
+        theta_range = np.linspace(0, 2 * np.pi, 72)
+        speed_range = np.linspace(0, self.optimal_speed_mps, 10)
+        cost_map = np.zeros((len(theta_range), len(speed_range)))
+        cost_map = []
+        for theta in theta_range:
             for speed in np.linspace(0, self.optimal_speed_mps, 10):
                 vel = np.array([np.cos(theta), np.sin(theta)]) * speed
                 cost = self.cost_task(x, vel, dt, goal)
@@ -95,15 +99,15 @@ class LocalPlanner:
         else:
             optimal_plan_other_goals = np.empty((len(other_goals), self.n_steps, 0))
 
-        x_last = x
-        for step in range(1):
+        sub_plan = [x]
+        for step in range(3):
             v_star, cost_map = self.__search_optimal_velocity__(x, dt, self.goals[self.goal_idx],
                                                                 optimal_plan_other_goals[:, step])
-            x_last = x_last + v_star * dt
+            sub_plan.append(x + v_star * dt)
 
-        return x_last, cost_map
+        return sub_plan[1], cost_map
 
-    def get_plan(self, x0, dt=0.05, H=100):
+    def full_plan(self, x0, dt=0.05, H=100):
         x = x0
         plan = [x0]
         illegible_vectors = []
@@ -118,7 +122,7 @@ class LocalPlanner:
                 Visualizer().save(os.path.join(self.out_dir, f"{now.strftime('%Y%m%d-%H%M%S')}-{round(t, 4):.4f}.png"))
 
             x = new_x
-            if np.linalg.norm(x - self.goals[self.goal_idx]) < 0.1:
+            if np.linalg.norm(x - self.goals[self.goal_idx]) < (self.robot_radius + dt * self.optimal_speed_mps):
                 break
 
         plan.append(self.goals[self.goal_idx])

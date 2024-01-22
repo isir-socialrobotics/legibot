@@ -98,10 +98,10 @@ observers = [
 ]
 
 tables = [
-    [-2.5, -8, 0.6],
-    [-2.5, -4, 0.6],
-    [2, -8, 0.6],
-    [2, -4, 0.6],
+    [-2.5, -8, 0.7],
+    [-2.5, -4, 0.7],
+    [2, -8, 0.7],
+    [2, -4, 0.7],
 ]
 
 walls_list = parse_walls("/home/javad/workspace/catkin_ws/src/legibot/worlds/walls.sdf")
