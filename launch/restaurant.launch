@@ -14,7 +14,7 @@
   </include>
 
   <include file="$(find legibot)/launch/spawn_observer.launch">
-    <arg name="x" value="-3.7"/>
+    <arg name="x" value="-3.5"/>
     <arg name="y" value="-8.5"/>
     <arg name="yaw" value="2.3"/>
     <arg name="obj_name" value="observer1" />
@@ -31,7 +31,7 @@
 <!--   <node name="observer_recorder" pkg="legibot" type="record_observer.py" output="screen" /> -->
 
  <node name="robot_controller_py" pkg="legibot" type="hardcoded_planner.py" output="screen">
-      <param name="goal" value="(-2.6,-7.1)" type="str"/>
+<!--       <param name="goal" value="(-2.6,-7.1)" type="str"/> -->  <!-- Not in the loop -->
   </node>
 
 <!--   <include file="$(find legibot)/launch/robot_controller.launch" /> -->

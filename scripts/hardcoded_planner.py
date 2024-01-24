@@ -89,7 +89,7 @@ if __name__ == '__main__':
         pass
 
     # read goal value
-    goal = rospy.get_param("/robot_controller/goal", "(-2.6,-7.1)")
+    goal = rospy.get_param("/robot_controller/goal", "(-2,-7.5)")
     goal = eval(goal)
     if len(goal) != 2:
         raise RuntimeError("Exiting Trajectory Controller: Invalid Goal")

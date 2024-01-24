@@ -8,18 +8,12 @@ from legibot.utils.singleton import Singleton
 class Visualizer(metaclass=Singleton):
     def __init__(self):
         self.mode = "opencv"  # "matplotlib"
+        self.im_size = (1080, 1080)
+        self.world_x_range = (-10, 10)
+        self.world_y_range = (-10, 10)
 
-        # OpenCV
-        if self.mode == "opencv":
-            self.img = self.__blank_image__(1000, 1000)
-
-        # transform matrix
-        self.scale = self.img.shape[0] / 20
-        offset_x = self.img.shape[0] / 2
-        offset_y = self.img.shape[1] / 2
-        self.transform_matrix = np.array([[self.scale, 0, offset_x],
-                                          [0, self.scale, offset_y],
-                                          ])
+        self.img = None
+        self.reset()
 
     def transform(self, x, y):
         t_xy = np.dot(self.transform_matrix, np.array([x, y, 1]))
@@ -34,9 +28,16 @@ class Visualizer(metaclass=Singleton):
         if self.mode == "opencv":
             cv2.imwrite(filename, cv2.flip(self.img, 0))
 
-    def __blank_image__(self, width, height):
+    def reset(self):
         if self.mode == "opencv":
-            return np.ones((height, width, 3), np.uint8) * 255
+            self.img = np.ones((self.im_size[0], self.im_size[1], 3), dtype=np.uint8) * 255
+            # transform matrix
+        self.scale = self.img.shape[0] / (self.world_x_range[1] - self.world_x_range[0])
+        offset_x = -self.world_x_range[0] * self.scale
+        offset_y = -self.world_y_range[0] * self.scale
+        self.transform_matrix = np.array([[self.scale, 0, offset_x],
+                                          [0, self.scale, offset_y],
+                                          ])
 
     def draw_obstacles(self, obstacles):
         if self.mode == "opencv":

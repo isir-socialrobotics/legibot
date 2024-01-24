@@ -87,28 +87,35 @@
     <include>
       <uri>model://person_standing</uri>
       <name>person_2</name>
-      <pose>3.4 -8 0.16 0 0 -1.5707</pose>
+      <pose>2.2 -8 0.16 0 0 -1.5707</pose>
       <static>true</static>
     </include>
 
     <include>
       <uri>model://round_table</uri>
       <name>table_3</name>
-      <pose>2 -8 0 0 0 1.57</pose>
+      <pose>1 -8 0 0 0 1.57</pose>
       <static>true</static>
     </include>
 
+<!--    <include>-->
+<!--      <uri>model://person_standing</uri>-->
+<!--      <name>person_3</name>-->
+<!--      <pose>-3.85 -4 0.16 0 0 1.5707</pose>-->
+<!--      <static>true</static>-->
+<!--    </include>-->
+
     <include>
       <uri>model://person_standing</uri>
-      <name>person_3</name>
-      <pose>-3.85 -4 0.16 0 0 1.5707</pose>
+      <name>person_4</name>
+      <pose>2.2 -4 0.16 0 0 -1.5707</pose>
       <static>true</static>
     </include>
 
     <include>
       <uri>model://round_table</uri>
       <name>round_table_1</name>
-      <pose>2 -4.0 0 0 0 1.57</pose>
+      <pose>1 -4.0 0 0 0 1.57</pose>
       <static>true</static>
     </include>
 

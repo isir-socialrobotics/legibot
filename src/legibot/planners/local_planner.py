@@ -20,22 +20,22 @@ class LocalPlanner:
 
         # DWA parameters
         self.optimal_speed_mps = kwargs.get("optimal_speed", 2.0)  # m/s (robot should keep this speed)
-        self.obstacle_radius = kwargs.get("obstacle_radius", 0.6)  # m (robot should keep this distance from obstacles)
+        self.obstacle_radius = kwargs.get("obstacle_radius", 3.0)  # m (robot should keep this distance from obstacles)
         self.W = {"goal": kwargs.get("w_goal", 0.9),
-                  "obstacle": kwargs.get("w_obstacle", 0.07),
+                  "obstacle": kwargs.get("w_obstacle", 0.5),
                   "speed": kwargs.get("w_speed", 0.4),
                   "legibility": kwargs.get("w_legibility", 0.5)}
         self.n_steps = kwargs.get("n_steps", 3)
 
         self.out_dir = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../../out"))
 
-    def obstacle_cost(self, x):
+    def cost_obstacle(self, x):
         d = np.sqrt(np.square(self.obstacles[:, 0] - x[0])+ np.square(self.obstacles[:, 1] - x[1]))
         d = d - self.obstacles[:, 2] - self.robot_radius
         d = max(d.min(), 0)
         if d > self.obstacle_radius:
             return 0
-        return 0.3/ (d+ 1e-2) # np.exp(-d)
+        return 0.5/ (d+ 1e-2) # np.exp(-d)
 
     def cost_task(self, pos, vel, dt, goal_xy):
         goal_vec = goal_xy - pos
@@ -45,12 +45,12 @@ class LocalPlanner:
         cost_goal = 1-np.dot(goal_vec, vel) /(np.linalg.norm(goal_vec) * np.linalg.norm(vel) + 1e-6)
         cost_goal += np.linalg.norm(next_xy - goal_xy) / np.linalg.norm(goal_xy - pos)
 
-        cost_obstacle = self.obstacle_cost(next_xy)
+        cost_obs = self.cost_obstacle(next_xy)
 
         # cost of deviating from optimal speed
         cost_speed = (np.linalg.norm(vel) - self.optimal_speed_mps) ** 2
 
-        return cost_goal * self.W["goal"] + cost_obstacle * self.W["obstacle"] + cost_speed * self.W["speed"]
+        return cost_goal * self.W["goal"] + cost_obs * self.W["obstacle"] + cost_speed * self.W["speed"]
 
     def cost_legibility(self, pos, vel, dt, goal_xy, illegible_v_stars):
         cost = 0

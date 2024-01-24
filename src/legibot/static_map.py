@@ -93,15 +93,16 @@ def conv_walls_to_obstacles(walls):
     return obs_
 
 observers = [
-    [3.4, -8],
-    [-3.85, -4]
+    [2.2, -8],
+    [2.2, -4],
+    ## [-3.85, -4],
 ]
 
 tables = [
     [-2.5, -8, 0.7],
     [-2.5, -4, 0.7],
-    [2, -8, 0.7],
-    [2, -4, 0.7],
+    [1, -8, 0.7],
+    [1, -4, 0.7],
 ]
 
 walls_list = parse_walls("/home/javad/workspace/catkin_ws/src/legibot/worlds/walls.sdf")
