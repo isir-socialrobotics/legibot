@@ -11,7 +11,7 @@ from sensor_msgs.msg import Image, CameraInfo
 import sys
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
-from legibot.optical_flow.raft_optical_flow import RaftModel #, vizualize_optical_flow
+# from legibot.optical_flow.raft_optical_flow import RaftModel #, vizualize_optical_flow
 
 
 class ROSVideoRecorder:
@@ -20,14 +20,14 @@ class ROSVideoRecorder:
         self.output_path = output_path
         self.fps = fps
         self.is_recording = False
-        self.raft_optical_flow_model = RaftModel(args)
+        # self.raft_optical_flow_model = RaftModel(args)
 
         self.writer = None
         self.image_size = None
         self.last_image = None
         self.image_sub = rospy.Subscriber(self.topic + '/image_raw', Image, self.image_callback)
         self.camera_info_sub = rospy.Subscriber(self.topic + '/camera_info', CameraInfo, self.camera_info_callback)
-        self.flow_image_pub = rospy.Publisher(self.topic + '/optical_flow', Image, queue_size=1)
+        # self.flow_image_pub = rospy.Publisher(self.topic + '/optical_flow', Image, queue_size=1)
 
     def optical_flow(self, image1, image2):
         blank_im = np.zeros_like(image1[:, :, 0])
