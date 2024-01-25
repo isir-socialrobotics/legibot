@@ -48,7 +48,7 @@ class MainPlanner:
                 time.sleep(3)
                 continue
 
-            # next_x, _ = self._local_planner.step(self.robot_xyt[:2], dt=0.2)
+            # next_x, _, __ = self._local_planner.step(self.robot_xyt[:2], dt=0.2)
             # self._controller.trajectory = [Point(next_x[0], next_x[1], 0)]
             self._controller.exec()
             # self.goal_publisher.publish(self.goal)

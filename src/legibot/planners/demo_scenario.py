@@ -44,7 +44,7 @@ goal_radius = 0.1
 #             field[j, i, 1] = -f[1]
 
 dwa_planner = LocalPlanner(goals, obstacles, goal_idx)
-plan_dwa = dwa_planner.full_plan(np.array([0.1, 0.1]))
+plan_dwa = dwa_planner.full_plan(np.array([0.1, 0.1, 0]))
 
 fig, axs = plt.subplots(1, 1, figsize=(6, 4))
 
@@ -53,6 +53,8 @@ fig, axs = plt.subplots(1, 1, figsize=(6, 4))
 # plot_field(field, axs[2])
 plot_path(plan_dwa, goals, obstacles, axs, "Legibility-Aware Local Planner")
 plt.show()
-
+Visualizer().world_x_range = (-1.5, 1.5)
+Visualizer().world_y_range = (-1.5, 1.5)
+Visualizer().reset()
 Visualizer().draw_path(plan_dwa)
 Visualizer().show()
