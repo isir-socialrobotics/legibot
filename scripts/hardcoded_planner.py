@@ -23,7 +23,7 @@ class MainPlanner:
         self.goal = g
         self.robot_xyt = None
         self._controller = TrajectoryController([])
-        self._local_planner = LocalPlanner(np.array([g] + observers), np.array(obstacles), 0)
+        self._local_planner = LocalPlanner(np.array([g] + observers), np.array(obstacles), 0, verbose=True)
 
         # self.goal_publisher = rospy.Publisher('/pepper/goals', PoseArray, queue_size=10)
         self._odom_sub = rospy.Subscriber('/odom', Odometry, self.odom_callback)
@@ -33,11 +33,11 @@ class MainPlanner:
     def generate_trajectory(self):
         sub_goals = [[-3, 1], [-1, 0], [1, -1.5]]  # legible
         # sub_goals = [[-3, -1], [-0.7, -2], [-1.5, -4]]  # illegible
-        traj_curve = get_bezier_path(self.robot_xyt[:2], self.goal, sub_goals)
-        self.hardcode_trajectory = [Point(p[0], p[1], 0) for p in traj_curve]
+        # traj_curve = get_bezier_path(self.robot_xyt[:2], self.goal, sub_goals)
+        # self.hardcode_trajectory = [Point(p[0], p[1], 0) for p in traj_curve]
 
         self._local_planner.optimal_speed_mps = 1
-        plan = self._local_planner.full_plan(self.robot_xyt[:2], dt=1, H=100)
+        plan = self._local_planner.full_plan(self.robot_xyt, dt=1, H=100)
         self._controller.trajectory = [Point(p[0], p[1], 0) for p in plan]
         self._controller.reset()
 
