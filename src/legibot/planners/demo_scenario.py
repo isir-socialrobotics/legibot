@@ -4,24 +4,22 @@ import numpy as np
 from src.legibot.planners.local_planner import LocalPlanner
 from legibot.utils.viz_utils import plot_path, Visualizer
 
-x0 = [0.1, 0.1]
+x0 = [0, 0]
 goals = np.array([
-                  [0.9, 0.9],
-                  # [0.3, 0.9],
-                  [0.9, 0.1],
-                  [0.95, 0.4]
+                  [10, 10],
+                  # [3, 9],
+                  [9, 1],
+                  [9.55, 4]
                   ])
 goal_idx = 0
 
 obstacles = np.array([
-                      [0.5, 0.55, 0.1],
-                      [0.2, 0.8, 0.1]
+                      [5, 5.5, 1],
+                      [2, 8, 1]
                       ])
-obstacle_radius = 0.1
-goal_radius = 0.1
-
-# Visualizer().draw_obstacles(obstacles)
-# Visualizer().draw_goals(goals)
+Visualizer().world_x_range = (-10.5, 10.5)
+Visualizer().world_y_range = (-10.5, 10.5)
+Visualizer().reset()
 
 # plan_rrt = RRT(x0, goals[goal_idx], obstacles)
 # plot_path(plan_rrt, goals, obstacles, title="RRT")
@@ -43,18 +41,16 @@ goal_radius = 0.1
 #             field[j, i, 0] = f[0]
 #             field[j, i, 1] = -f[1]
 
-dwa_planner = LocalPlanner(goals, obstacles, goal_idx)
-plan_dwa = dwa_planner.full_plan(np.array([0.1, 0.1, 0]))
+local_planner = LocalPlanner(goals, obstacles, goal_idx, verbose=True)
+plan_legibot = local_planner.full_plan(np.array([0.1, 0.1, 0]), dt=1)
 
 fig, axs = plt.subplots(1, 1, figsize=(6, 4))
 
 # plot_path(plan_apf_legible, goals, obstacles, axs[0])
 # plot_path(plan_apf_illegible, goals, obstacles, axs[1])
 # plot_field(field, axs[2])
-plot_path(plan_dwa, goals, obstacles, axs, "Legibility-Aware Local Planner")
+plot_path(plan_legibot, goals, obstacles, axs, "Legibility-Aware Local Planner")
 plt.show()
-Visualizer().world_x_range = (-1.5, 1.5)
-Visualizer().world_y_range = (-1.5, 1.5)
-Visualizer().reset()
-Visualizer().draw_path(plan_dwa)
+
+Visualizer().draw_path(plan_legibot)
 Visualizer().show()

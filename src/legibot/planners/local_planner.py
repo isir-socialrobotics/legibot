@@ -1,6 +1,7 @@
 import os
 from datetime import datetime
 import numpy as np
+from typing import Tuple
 
 from legibot.utils.basic_math import cos_2_vecs
 from legibot.utils.viz_utils import Visualizer
@@ -12,7 +13,7 @@ class LocalPlanner:
         self.goal_idx = goal_idx
         self.obstacles = obstacles
         self.enable_vis = kwargs.get("verbose", False)
-        self.enable_legibility = kwargs.get("enable_legibility", False)
+        self.enable_legibility = kwargs.get("enable_legibility", True)
 
         if self.enable_vis:
             Visualizer().draw_obstacles(obstacles)
@@ -21,12 +22,13 @@ class LocalPlanner:
         self.robot_radius = 0.3  # pepper?
 
         # Planner parameters
-        self.optimal_speed_mps = kwargs.get("optimal_speed", 2.0)  # m/s (robot should keep this speed)
-        self.obstacle_radius = kwargs.get("obstacle_radius", 3.0)  # m (robot should keep this distance from obstacles)
+        self.optimal_speed_mps = kwargs.get("optimal_speed", 1.0)  # m/s (robot should keep this speed)
+        self.obstacle_radius = kwargs.get("obstacle_radius", 0.8)  # m (robot should keep this distance from obstacles)
         self.W = {"goal": kwargs.get("w_goal", 0.9),
                   "obstacle": kwargs.get("w_obstacle", 0.5),
-                  "speed": kwargs.get("w_speed", 0.4),
-                  "legibility": kwargs.get("w_legibility", 0.5)}
+                  "speed": kwargs.get("w_speed", 0.8),
+                  "legibility": kwargs.get("w_legibility", 0.5),
+                  "smoothness": kwargs.get("w_smoothness", 0.1)}
         self.n_steps = kwargs.get("n_steps", 3)
 
         self.out_dir = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../../out"))
@@ -39,9 +41,9 @@ class LocalPlanner:
         d = max(d.min(), 0)
         if d > self.obstacle_radius:
             return 0
-        return 0.5/ (d+ 1e-2) # np.exp(-d)
+        return 0.5/ (d+ 1e-3) # np.exp(-d)
 
-    def _cost_task(self, cur_xyt, vel_twist, dt, goal_xy):
+    def _cost_task(self, cur_xyt, vel_twist, dt, goal_xy) -> Tuple[float]:
         goal_vec = goal_xy - cur_xyt[:2]
         # next_xy = cur_xyt + displacement_vec * dt
 
@@ -57,12 +59,12 @@ class LocalPlanner:
 
         cost_obs = self._cost_obstacle(next_xy, goal_xy)
 
-        cost_turn = np.abs(vel_twist[1]) ** 2
+        cost_turn = np.abs(vel_twist[1])
 
         # cost of deviating from optimal speed
         cost_speed = (np.linalg.norm(displacement_vec) - self.optimal_speed_mps) ** 2
 
-        return cost_goal * self.W["goal"] + cost_obs * self.W["obstacle"] + self.W["speed"] * (cost_speed) #+ cost_turn)
+        return cost_goal * self.W["goal"], cost_obs * self.W["obstacle"], self.W["speed"] * cost_speed, cost_turn * self.W["smoothness"]
 
     def _cost_legibility(self, cur_xyt, vel_twist, dt, goal_xy, dxy_other_goals):
         new_theta = cur_xyt[2] + vel_twist[1] * dt
@@ -72,7 +74,7 @@ class LocalPlanner:
         for d_xy_illeg_i in dxy_other_goals:
             # cost += np.dot(vel, d_xy_illeg_i) / (np.linalg.norm(vel) * np.linalg.norm(d_xy_illeg_i) + 1e-6)
             cost += cos_2_vecs(dxy, d_xy_illeg_i)
-        return cost / len(dxy_other_goals)
+        return cost / len(dxy_other_goals) * self.W["legibility"]
 
     def __search_optimal_velocity__(self, xyt, dt, goal, illegible_v_stars=[]):
         min_cost = np.inf
@@ -81,6 +83,7 @@ class LocalPlanner:
         speed_range = np.linspace(0, self.optimal_speed_mps, 10)
         # cost_map = np.zeros((len(omega_range), len(speed_range)))
         cost_map = []
+        min_costs = []
         for ang_speed in omega_range:
             for lin_speed in speed_range:
                 # cur_theta = x[2]
@@ -88,33 +91,40 @@ class LocalPlanner:
                 # next_xyt = xyt[:2] + np.array([np.cos(new_theta), np.sin(new_theta)]) * lin_speed * dt
 
                 # vel = np.array([np.cos(ang_speed), np.sin(ang_speed)]) * lin_speed
-                cost = self._cost_task(xyt, (lin_speed, ang_speed), dt, goal)
+                costs = self._cost_task(xyt, (lin_speed, ang_speed), dt, goal)
+                cost = np.sum(costs)
                 if len(illegible_v_stars) > 0 and self.enable_legibility:
-                    cost += self._cost_legibility(xyt, (lin_speed, ang_speed), dt, goal, illegible_v_stars) * self.W["legibility"]
+                    cost += self._cost_legibility(xyt, (lin_speed, ang_speed), dt, goal, illegible_v_stars)
                 cost = np.clip(cost, 0, 1000)
                 if cost > min_cost:
                     continue
                 min_cost = cost
+                min_costs = costs
                 twist_star_vw = np.array([lin_speed, ang_speed])
-        return twist_star_vw, cost_map
+        return twist_star_vw, min_costs
 
     def step(self, xyt, dt) -> (np.ndarray, np.ndarray, bool):
         if np.linalg.norm(xyt[:2] - self.all_goals[self.goal_idx]) < (self.robot_radius + dt * self.optimal_speed_mps):
-            return self.all_goals[self.goal_idx], None, True
+            return self.all_goals[self.goal_idx], True
 
         optimal_plan_other_goals = []
         other_goals = [self.all_goals[i] for i in range(len(self.all_goals)) if i != self.goal_idx]
         if self.enable_legibility:
-            # find optimal velocity for each potential goal
-            for goal in other_goals:
+            # find optimal local-plan for each potential goal
+            for g_idx, goal in enumerate(other_goals):
                 last_xyt = xyt
                 optimal_plan_goal_i = []
                 for step in range(self.n_steps):
-                    vw_star_other, cost_map = self.__search_optimal_velocity__(last_xyt, dt, goal)
+                    vw_star_other, costs_list = self.__search_optimal_velocity__(last_xyt, dt, goal)
+                    new_theta = last_xyt[2] + vw_star_other[1] * dt
+                    new_xy = last_xyt[:2] + np.array([np.cos(new_theta), np.sin(new_theta)]) * vw_star_other[0] * dt
                     if self.enable_vis:
-                        Visualizer().add_arrow(last_xyt[:2], last_xyt[:2] + vw_star_other * dt, color=(0, 0, 255))
-                        # Visualizer().show(2)
-                    last_xyt = (*(last_xyt[:2] + vw_star_other * dt), last_xyt[2] + vw_star_other[1] * dt)
+                        if len(costs_list) > 0:
+                            print(f"costs: [Goal: {costs_list[0]:.2f}, Obstacle: {costs_list[1]:.2f}, Speed: {costs_list[2]:.2f}]")
+                        Visualizer().add_arrow(last_xyt[:2], new_xy, color=(0, 0, 255))
+                        Visualizer().show(2)
+
+                    last_xyt = np.array([new_xy[0], new_xy[1], new_theta])
                     optimal_plan_goal_i.append(vw_star_other)
                 optimal_plan_other_goals.append(optimal_plan_goal_i)
 
@@ -124,7 +134,7 @@ class LocalPlanner:
             optimal_plan_other_goals = np.empty((len(other_goals), self.n_steps, 0))
 
         sub_plan = [xyt]
-        for step in range(3):
+        for step in range(self.n_steps):
             vw_star, cost_map = self.__search_optimal_velocity__(xyt, dt, self.all_goals[self.goal_idx],
                                                                  optimal_plan_other_goals[:, step])
             cur_theta = xyt[2]
@@ -133,9 +143,9 @@ class LocalPlanner:
 
             sub_plan.append((next_xy[0], next_xy[1], new_theta))
 
-        return sub_plan[1], cost_map, False
+        return sub_plan[1], False
 
-    def full_plan(self, xyt0, dt=0.05, H=100):
+    def full_plan(self, xyt0, dt, H=100):
         assert len(xyt0) == 3, "local_planner: x0 must be a 3D vector: [x, y, theta(rad)]"
         xyt = xyt0
         plan = [xyt0]
@@ -143,7 +153,7 @@ class LocalPlanner:
 
         now = datetime.now()
         for t in np.arange(0, H * dt, dt):
-            new_xyt, cost_map, reached = self.step(xyt, dt)
+            new_xyt, reached = self.step(xyt, dt)
             plan.append(new_xyt)
 
             if self.enable_vis:
@@ -151,8 +161,6 @@ class LocalPlanner:
                 Visualizer().save(os.path.join(self.out_dir, f"{now.strftime('%Y%m%d-%H%M%S')}-{round(t, 4):.4f}.png"))
 
             xyt = new_xyt
-            print(f"time passed: {datetime.now() - now}")
-
             if reached:
                 break
 

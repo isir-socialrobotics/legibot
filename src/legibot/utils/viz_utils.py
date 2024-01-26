@@ -8,7 +8,7 @@ from legibot.utils.singleton import Singleton
 class Visualizer(metaclass=Singleton):
     def __init__(self):
         self.mode = "opencv"  # "matplotlib"
-        self.im_size = (1080, 1080)
+        self.im_size = (1000, 1000)
         self.world_x_range = (-10, 10)
         self.world_y_range = (-10, 10)
 
@@ -22,7 +22,9 @@ class Visualizer(metaclass=Singleton):
     def show(self, delay=0, title="image"):
         if self.mode == "opencv":
             cv2.imshow(title, cv2.flip(self.img, 0))
-            cv2.waitKey(delay)
+            k = cv2.waitKey(delay)
+            if k == 27: # if ESC is pressed, exit the program
+                exit()
 
     def save(self, filename):
         if self.mode == "opencv":
