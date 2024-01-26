@@ -2,8 +2,10 @@ import os
 from datetime import datetime
 import numpy as np
 from typing import Tuple
+#from concurrent.futures import ThreadPoolExecutor
+from sklearn.metrics import pairwise_distances
 
-from legibot.utils.basic_math import cos_2_vecs
+from legibot.utils.basic_math import cos_2_vecs, norm
 from legibot.utils.viz_utils import Visualizer
 
 
@@ -33,15 +35,18 @@ class LocalPlanner:
 
         self.out_dir = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../../out"))
 
-    def _cost_obstacle(self, xy, g=None):
-        d = np.sqrt(np.square(self.obstacles[:, 0] - xy[0]) + np.square(self.obstacles[:, 1] - xy[1]))
-        d = d - self.obstacles[:, 2] - self.robot_radius
-        if g is not None:
-            d = d / np.linalg.norm(xy - g)
-        d = max(d.min(), 0)
-        if d > self.obstacle_radius:
-            return 0
-        return 0.5/ (d+ 1e-3) # np.exp(-d)
+    def _cost_obstacle(self, xy, g=None):  # xy can be a point or a batch of points
+        xy = xy.reshape(-1, 2)
+        Dx = pairwise_distances(xy[:, 0].reshape(-1, 1), self.obstacles[:, 0].reshape(-1, 1))
+        Dy = pairwise_distances(xy[:, 1].reshape(-1, 1), self.obstacles[:, 1].reshape(-1, 1))
+        D = np.sqrt(np.square(Dx) + np.square(Dy)) - self.obstacles[:, 2] - self.robot_radius
+        D = np.min(D, axis=1)  # min distance from each point to any obstacle
+        if g is not None:  # as we get closer to the goal, obstacles are less important (GNRON problem: Goal Nonreachable with Obstacles Nearby)
+            D = D / norm(xy - g, axis=1)
+        D = np.clip(D, 1e-3, 1000)
+        cost_matrix = 0.5 / D
+        cost_matrix[cost_matrix < 0.5/self.obstacle_radius] = 0
+        return cost_matrix
 
     def _cost_task(self, cur_xyt, vel_twist, dt, goal_xy) -> Tuple[float]:
         goal_vec = goal_xy - cur_xyt[:2]
@@ -55,25 +60,46 @@ class LocalPlanner:
 
         # cost of deviating from goal direction
         cost_goal = 1 - cos_2_vecs(displacement_vec, goal_vec)
-        cost_goal += np.linalg.norm(goal_xy - next_xy) / np.linalg.norm(goal_xy - cur_xyt[:2])  # this is not a good idea
+        cost_goal += norm(goal_xy - next_xy) / norm(goal_xy - cur_xyt[:2])  # this is not a good idea
 
         cost_obs = self._cost_obstacle(next_xy, goal_xy)
 
         cost_turn = np.abs(vel_twist[1])
 
         # cost of deviating from optimal speed
-        cost_speed = (np.linalg.norm(displacement_vec) - self.optimal_speed_mps) ** 2
+        cost_speed = (norm(displacement_vec) - self.optimal_speed_mps) ** 2
 
-        return cost_goal * self.W["goal"], cost_obs * self.W["obstacle"], self.W["speed"] * cost_speed, cost_turn * self.W["smoothness"]
+        return cost_goal * self.W["goal"], cost_obs * self.W["obstacle"], cost_speed * self.W["speed"], cost_turn * self.W["smoothness"]
+
+    def _cost_task_batch(self, cur_xyt, vel_twist_batch, dt, goal_xy):
+        goal_vec = goal_xy - cur_xyt[:2]
+
+        cur_theta = cur_xyt[2]
+        new_theta_batch = cur_theta + vel_twist_batch[:, 1] * dt
+        next_x_batch = cur_xyt[0] + np.cos(new_theta_batch) * vel_twist_batch[:, 0] * dt
+        next_y_batch = cur_xyt[1] + np.sin(new_theta_batch) * vel_twist_batch[:, 0] * dt
+        next_xy_batch = np.stack([next_x_batch, next_y_batch], axis=-1)
+
+        displacement_vec_batch = next_xy_batch - cur_xyt[:2]
+
+        # cost of deviating from goal direction
+        cost_goal_batch = 1 - displacement_vec_batch @ goal_vec / (norm(displacement_vec_batch, axis=1) * norm(goal_vec) + 1e-6)
+
+        cost_obs_batch = self._cost_obstacle(next_xy_batch, goal_xy)
+        cost_turn_batch = np.abs(vel_twist_batch[:, 1])
+
+        # cost of deviating from optimal speed
+        cost_speed_batch = (norm(displacement_vec_batch, axis=1) - self.optimal_speed_mps) ** 2
+
+        return cost_goal_batch * self.W["goal"], cost_obs_batch * self.W["obstacle"], cost_speed_batch * self.W["speed"], cost_turn_batch * self.W["smoothness"]
 
     def _cost_legibility(self, cur_xyt, vel_twist, dt, goal_xy, dxy_other_goals):
-        new_theta = cur_xyt[2] + vel_twist[1] * dt
-        dxy = np.array([np.cos(new_theta), np.sin(new_theta)]) * vel_twist[0] * dt
+        vel_twist = np.reshape(vel_twist, (-1, 2))
+        new_theta = cur_xyt[2] + vel_twist[:, 1] * dt
+        dxy = (np.array([np.cos(new_theta), np.sin(new_theta)]) * vel_twist[:, 0]).T * dt
 
-        cost = 0
-        for d_xy_illeg_i in dxy_other_goals:
-            # cost += np.dot(vel, d_xy_illeg_i) / (np.linalg.norm(vel) * np.linalg.norm(d_xy_illeg_i) + 1e-6)
-            cost += cos_2_vecs(dxy, d_xy_illeg_i)
+        costs = dxy @ dxy_other_goals.T / (norm(dxy, axis=1).reshape(-1, 1) * norm(dxy_other_goals, axis=1).reshape(1, -1) + 1e-6)
+        cost = np.sum(costs, axis=1)
         return cost / len(dxy_other_goals) * self.W["legibility"]
 
     def __search_optimal_velocity__(self, xyt, dt, goal, illegible_v_stars=[]):
@@ -82,24 +108,37 @@ class LocalPlanner:
         speed_table = np.meshgrid(lin_speed_range, ang_speed_range)
         cost_map = np.zeros((len(ang_speed_range), len(lin_speed_range)))
 
-        for i, j in np.ndindex(speed_table[0].shape):
-            lin_speed = speed_table[0][i, j]
-            ang_speed = speed_table[1][i, j]
+        ## Parallel version
+        # def calculate_cost(ij_tuple):
+        #     i, j = ij_tuple
+        #     lin_speed = speed_table[0][i, j]
+        #     ang_speed = speed_table[1][i, j]
+        #
+        #     costs = self._cost_task(xyt, (lin_speed, ang_speed), dt, goal)
+        #     cost_i = np.sum(costs)
+        #     if len(illegible_v_stars) > 0 and self.enable_legibility:
+        #         cost_i += self._cost_legibility(xyt, (lin_speed, ang_speed), dt, goal, illegible_v_stars)
+        #     cost_i = np.clip(cost_i, 0, 1000)
+        #     cost_map[i, j] = cost_i
+        # with ThreadPoolExecutor() as executor:
+        #     executor.map(calculate_cost, np.ndindex(speed_table[0].shape))
 
-            costs = self._cost_task(xyt, (lin_speed, ang_speed), dt, goal)
-            cost_i = np.sum(costs)
-            if len(illegible_v_stars) > 0 and self.enable_legibility:
-                cost_i += self._cost_legibility(xyt, (lin_speed, ang_speed), dt, goal, illegible_v_stars)
-            cost_i = np.clip(cost_i, 0, 1000)
-            cost_map[i, j] = cost_i
+        ## Serial version
+        # for i, j in np.ndindex(speed_table[0].shape):
+        #     calculate_cost((i, j))
 
-        min_cost_idx = np.argmin(cost_map)
+        ## Batch version
+        costs_batch = self._cost_task_batch(xyt, np.stack(speed_table, axis=-1).reshape(-1, 2), dt, goal)
+        cost_batch = np.sum(costs_batch, axis=0)
+        if len(illegible_v_stars) > 0 and self.enable_legibility:
+            cost_batch += self._cost_legibility(xyt, np.stack(speed_table, axis=-1).reshape(-1, 2), dt, goal, illegible_v_stars)
+        min_cost_idx = np.argmin(cost_batch)
         twist_star_vw = np.array([speed_table[0].flatten()[min_cost_idx], speed_table[1].flatten()[min_cost_idx]])
 
         return twist_star_vw, 0
 
     def step(self, xyt, dt) -> (np.ndarray, np.ndarray, bool):
-        if np.linalg.norm(xyt[:2] - self.all_goals[self.goal_idx]) < (self.robot_radius + dt * self.optimal_speed_mps):
+        if norm(xyt[:2] - self.all_goals[self.goal_idx]) < (self.robot_radius + dt * self.optimal_speed_mps):
             return self.all_goals[self.goal_idx], True
 
         optimal_plan_other_goals = []
@@ -156,6 +195,7 @@ class LocalPlanner:
             xyt = new_xyt
             if reached:
                 break
+            print(f"time passed: {datetime.now() - now}")
 
         plan.append(self.all_goals[self.goal_idx])
         if self.enable_vis:

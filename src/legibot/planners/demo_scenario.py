@@ -4,7 +4,7 @@ import numpy as np
 from src.legibot.planners.local_planner import LocalPlanner
 from legibot.utils.viz_utils import plot_path, Visualizer
 
-x0 = [0, 0]
+x0 = [0, 0, 0]
 goals = np.array([
                   [10, 10],
                   # [3, 9],
@@ -15,7 +15,8 @@ goal_idx = 0
 
 obstacles = np.array([
                       [5, 5.5, 1],
-                      [2, 8, 1]
+                      [2, 8, 1],
+                      [8, 8, 1],
                       ])
 Visualizer().world_x_range = (-10.5, 10.5)
 Visualizer().world_y_range = (-10.5, 10.5)
@@ -41,8 +42,8 @@ Visualizer().reset()
 #             field[j, i, 0] = f[0]
 #             field[j, i, 1] = -f[1]
 
-local_planner = LocalPlanner(goals, obstacles, goal_idx, verbose=True)
-plan_legibot = local_planner.full_plan(np.array([0.1, 0.1, 0]), dt=1)
+local_planner = LocalPlanner(goals, obstacles, goal_idx, verbose=False)
+plan_legibot = local_planner.full_plan(np.array(x0), dt=1)
 
 fig, axs = plt.subplots(1, 1, figsize=(6, 4))
 

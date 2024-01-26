@@ -3,6 +3,9 @@ import numpy as np
 def cos_2_vecs(v1, v2):
     return np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2) + 1e-6)
 
+def norm(x, axis=None):
+    return np.linalg.norm(x, axis=axis)
+
 def find_intersections(lines1, lines2):
     # Extract line endpoints
     # Reshape lines into (N, 2, 2) and (M, 2, 2) arrays
