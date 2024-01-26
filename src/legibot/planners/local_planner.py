@@ -77,31 +77,26 @@ class LocalPlanner:
         return cost / len(dxy_other_goals) * self.W["legibility"]
 
     def __search_optimal_velocity__(self, xyt, dt, goal, illegible_v_stars=[]):
-        min_cost = np.inf
-        twist_star_vw = np.zeros(2)
-        omega_range = np.linspace(-np.pi, np.pi, 36)
-        speed_range = np.linspace(0, self.optimal_speed_mps, 10)
-        # cost_map = np.zeros((len(omega_range), len(speed_range)))
-        cost_map = []
-        min_costs = []
-        for ang_speed in omega_range:
-            for lin_speed in speed_range:
-                # cur_theta = x[2]
-                # new_theta = xyt[2] + ang_speed * dt
-                # next_xyt = xyt[:2] + np.array([np.cos(new_theta), np.sin(new_theta)]) * lin_speed * dt
+        ang_speed_range = np.linspace(-np.pi, np.pi, 36)  # 10 deg
+        lin_speed_range = np.linspace(0, self.optimal_speed_mps, 11)
+        speed_table = np.meshgrid(lin_speed_range, ang_speed_range)
+        cost_map = np.zeros((len(ang_speed_range), len(lin_speed_range)))
 
-                # vel = np.array([np.cos(ang_speed), np.sin(ang_speed)]) * lin_speed
-                costs = self._cost_task(xyt, (lin_speed, ang_speed), dt, goal)
-                cost = np.sum(costs)
-                if len(illegible_v_stars) > 0 and self.enable_legibility:
-                    cost += self._cost_legibility(xyt, (lin_speed, ang_speed), dt, goal, illegible_v_stars)
-                cost = np.clip(cost, 0, 1000)
-                if cost > min_cost:
-                    continue
-                min_cost = cost
-                min_costs = costs
-                twist_star_vw = np.array([lin_speed, ang_speed])
-        return twist_star_vw, min_costs
+        for i, j in np.ndindex(speed_table[0].shape):
+            lin_speed = speed_table[0][i, j]
+            ang_speed = speed_table[1][i, j]
+
+            costs = self._cost_task(xyt, (lin_speed, ang_speed), dt, goal)
+            cost_i = np.sum(costs)
+            if len(illegible_v_stars) > 0 and self.enable_legibility:
+                cost_i += self._cost_legibility(xyt, (lin_speed, ang_speed), dt, goal, illegible_v_stars)
+            cost_i = np.clip(cost_i, 0, 1000)
+            cost_map[i, j] = cost_i
+
+        min_cost_idx = np.argmin(cost_map)
+        twist_star_vw = np.array([speed_table[0].flatten()[min_cost_idx], speed_table[1].flatten()[min_cost_idx]])
+
+        return twist_star_vw, 0
 
     def step(self, xyt, dt) -> (np.ndarray, np.ndarray, bool):
         if np.linalg.norm(xyt[:2] - self.all_goals[self.goal_idx]) < (self.robot_radius + dt * self.optimal_speed_mps):
@@ -115,12 +110,10 @@ class LocalPlanner:
                 last_xyt = xyt
                 optimal_plan_goal_i = []
                 for step in range(self.n_steps):
-                    vw_star_other, costs_list = self.__search_optimal_velocity__(last_xyt, dt, goal)
+                    vw_star_other, _ = self.__search_optimal_velocity__(last_xyt, dt, goal)
                     new_theta = last_xyt[2] + vw_star_other[1] * dt
                     new_xy = last_xyt[:2] + np.array([np.cos(new_theta), np.sin(new_theta)]) * vw_star_other[0] * dt
                     if self.enable_vis:
-                        if len(costs_list) > 0:
-                            print(f"costs: [Goal: {costs_list[0]:.2f}, Obstacle: {costs_list[1]:.2f}, Speed: {costs_list[2]:.2f}]")
                         Visualizer().add_arrow(last_xyt[:2], new_xy, color=(0, 0, 255))
                         Visualizer().show(2)
 
