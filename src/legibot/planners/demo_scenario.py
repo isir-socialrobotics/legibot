@@ -18,8 +18,8 @@ obstacles = np.array([
                       [2, 8, 1],
                       [8, 8, 1],
                       ])
-Visualizer().world_x_range = (-10.5, 10.5)
-Visualizer().world_y_range = (-10.5, 10.5)
+Visualizer().world_x_range = (-1.5, 12)
+Visualizer().world_y_range = (-1.5, 12)
 Visualizer().reset()
 
 # plan_rrt = RRT(x0, goals[goal_idx], obstacles)
@@ -42,15 +42,21 @@ Visualizer().reset()
 #             field[j, i, 0] = f[0]
 #             field[j, i, 1] = -f[1]
 
-local_planner = LocalPlanner(goals, obstacles, goal_idx, verbose=False)
+local_planner = LocalPlanner(goals, obstacles, goal_idx, verbose=True)
+local_planner.legibility_cost_type = "euclidean" # "cosine"
 plan_legibot = local_planner.full_plan(np.array(x0), dt=1)
 
 fig, axs = plt.subplots(1, 1, figsize=(6, 4))
 
-# plot_path(plan_apf_legible, goals, obstacles, axs[0])
-# plot_path(plan_apf_illegible, goals, obstacles, axs[1])
-# plot_field(field, axs[2])
-plot_path(plan_legibot, goals, obstacles, axs, "Legibility-Aware Local Planner")
+plot_title = "Local Planner"
+if local_planner.enable_legibility:
+    plot_title += " (Legible)"
+else:
+    plot_title += " (Illegible)"
+
+plot_title += f" - cost =[{local_planner.legibility_cost_type}]"
+
+plot_path(plan_legibot, goals, obstacles, axs, title=plot_title)
 plt.show()
 
 Visualizer().draw_path(plan_legibot)

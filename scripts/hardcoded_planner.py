@@ -37,7 +37,7 @@ class MainPlanner:
         # self.hardcode_trajectory = [Point(p[0], p[1], 0) for p in traj_curve]
 
         self._local_planner.optimal_speed_mps = 1
-        plan = self._local_planner.full_plan(self.robot_xyt, dt=1, H=100)
+        plan = self._local_planner.full_plan(self.robot_xyt, dt=0.5, H=100)
         self._controller.trajectory = [Point(p[0], p[1], 0) for p in plan]
         self._controller.reset()
 

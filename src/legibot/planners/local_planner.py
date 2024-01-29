@@ -15,7 +15,9 @@ class LocalPlanner:
         self.goal_idx = goal_idx
         self.obstacles = obstacles
         self.enable_vis = kwargs.get("verbose", False)
+
         self.enable_legibility = kwargs.get("enable_legibility", True)
+        self.legibility_cost_type = kwargs.get("legibility_cost_type", "euclidean")  # ["cosine", "euclidean"]
 
         if self.enable_vis:
             Visualizer().draw_obstacles(obstacles)
@@ -27,10 +29,10 @@ class LocalPlanner:
         self.optimal_speed_mps = kwargs.get("optimal_speed", 1.0)  # m/s (robot should keep this speed)
         self.obstacle_radius = kwargs.get("obstacle_radius", 0.8)  # m (robot should keep this distance from obstacles)
         self.W = {"goal": kwargs.get("w_goal", 0.9),
-                  "obstacle": kwargs.get("w_obstacle", 0.5),
+                  "obstacle": kwargs.get("w_obstacle", 0.3),
                   "speed": kwargs.get("w_speed", 0.8),
                   "legibility": kwargs.get("w_legibility", 0.5),
-                  "smoothness": kwargs.get("w_smoothness", 0.1)}
+                  "smoothness": kwargs.get("w_smoothness", 0.2)}
         self.n_steps = kwargs.get("n_steps", 3)
 
         self.out_dir = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../../out"))
@@ -44,8 +46,8 @@ class LocalPlanner:
         if g is not None:  # as we get closer to the goal, obstacles are less important (GNRON problem: Goal Nonreachable with Obstacles Nearby)
             D = D / norm(xy - g, axis=1)
         D = np.clip(D, 1e-3, 1000)
-        cost_matrix = 0.5 / D
-        cost_matrix[cost_matrix < 0.5/self.obstacle_radius] = 0
+        cost_matrix = 0.2 / D
+        cost_matrix[cost_matrix < 0.2/self.obstacle_radius] = 0
         return cost_matrix
 
     def _cost_task(self, cur_xyt, vel_twist, dt, goal_xy) -> Tuple[float]:
@@ -93,14 +95,37 @@ class LocalPlanner:
 
         return cost_goal_batch * self.W["goal"], cost_obs_batch * self.W["obstacle"], cost_speed_batch * self.W["speed"], cost_turn_batch * self.W["smoothness"]
 
-    def _cost_legibility(self, cur_xyt, vel_twist, dt, goal_xy, dxy_other_goals):
-        vel_twist = np.reshape(vel_twist, (-1, 2))
-        new_theta = cur_xyt[2] + vel_twist[:, 1] * dt
-        dxy = (np.array([np.cos(new_theta), np.sin(new_theta)]) * vel_twist[:, 0]).T * dt
+    def _cost_legibility(self, cur_xyt, vel_twist_batch, dt, goal_xy, dxy_other_goals):
+        vel_twist_batch = np.reshape(vel_twist_batch, (-1, 2))
+        new_theta_batch = cur_xyt[2] + vel_twist_batch[:, 1] * dt
+        dxy = (np.array([np.cos(new_theta_batch), np.sin(new_theta_batch)]) * vel_twist_batch[:, 0]).T * dt
 
-        costs = dxy @ dxy_other_goals.T / (norm(dxy, axis=1).reshape(-1, 1) * norm(dxy_other_goals, axis=1).reshape(1, -1) + 1e-6)
-        cost = np.sum(costs, axis=1)
-        return cost / len(dxy_other_goals) * self.W["legibility"]
+        next_x_batch = cur_xyt[0] + np.cos(new_theta_batch) * vel_twist_batch[:, 0] * dt
+        next_y_batch = cur_xyt[1] + np.sin(new_theta_batch) * vel_twist_batch[:, 0] * dt
+        next_xy_batch = np.stack([next_x_batch, next_y_batch], axis=-1)
+
+        dist_to_main_goal = norm(goal_xy - cur_xyt[:2])
+        other_goals = [self.all_goals[i] for i in range(len(self.all_goals)) if i != self.goal_idx]
+        ratio_goal_dist = [0] * len(other_goals)
+        for ii in range(len(other_goals)):
+            dist_to_other_goal_i = norm(other_goals[ii] - cur_xyt[:2])
+            ratio_goal_dist[ii] = dist_to_main_goal / dist_to_other_goal_i
+        print(f"max (ratio_goal_dist): {max(ratio_goal_dist):.2f}")
+
+        if self.legibility_cost_type.lower() == "cosine":
+            costs = dxy @ dxy_other_goals.T / (norm(dxy, axis=1).reshape(-1, 1) * norm(dxy_other_goals, axis=1).reshape(1, -1) + 1e-6)
+
+        elif self.legibility_cost_type.lower() == "euclidean":
+            next_xy_other_goals = cur_xyt[:2] + dxy_other_goals
+            D = pairwise_distances(next_xy_batch, next_xy_other_goals)
+            costs = 1 / (D + 1e-6)
+        else:
+            raise ValueError(f"Unknown legibility cost type: {self.legibility_cost_type}")
+
+        # apply weights for each non-main goal
+        costs_weighted = costs @ np.array(ratio_goal_dist).reshape(-1, 1) / len(dxy_other_goals)
+
+        return (costs_weighted * self.W["legibility"]).reshape(-1)
 
     def __search_optimal_velocity__(self, xyt, dt, goal, illegible_v_stars=[]):
         ang_speed_range = np.linspace(-np.pi, np.pi, 36)  # 10 deg
@@ -195,7 +220,7 @@ class LocalPlanner:
             xyt = new_xyt
             if reached:
                 break
-            print(f"time passed: {datetime.now() - now}")
+            # print(f"time passed: {datetime.now() - now}")
 
         plan.append(self.all_goals[self.goal_idx])
         if self.enable_vis:
