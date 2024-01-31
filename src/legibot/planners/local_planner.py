@@ -164,7 +164,7 @@ class LocalPlanner:
 
     def step(self, xyt, dt) -> (np.ndarray, np.ndarray, bool):
         if norm(xyt[:2] - self.all_goals[self.goal_idx]) < (self.robot_radius + dt * self.optimal_speed_mps):
-            return self.all_goals[self.goal_idx], True
+            return [self.all_goals[self.goal_idx][0], self.all_goals[self.goal_idx][1], xyt[2]], True
 
         optimal_plan_other_goals = []
         other_goals = [self.all_goals[i] for i in range(len(self.all_goals)) if i != self.goal_idx]
@@ -222,7 +222,7 @@ class LocalPlanner:
                 break
             # print(f"time passed: {datetime.now() - now}")
 
-        plan.append(self.all_goals[self.goal_idx])
+        # plan.append([self.all_goals[self.goal_idx][0], self.all_goals[self.goal_idx][1], xyt[2]])
         if self.enable_vis:
             Visualizer().draw_path(plan)
             Visualizer().show(delay=100)

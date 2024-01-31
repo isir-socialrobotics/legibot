@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
+from legibot.planners.smoother import smooth_trajectory
 from src.legibot.planners.local_planner import LocalPlanner
 from legibot.utils.viz_utils import plot_path, Visualizer
 
@@ -42,7 +43,7 @@ Visualizer().reset()
 #             field[j, i, 0] = f[0]
 #             field[j, i, 1] = -f[1]
 
-local_planner = LocalPlanner(goals, obstacles, goal_idx, verbose=True)
+local_planner = LocalPlanner(goals, obstacles, goal_idx, verbose=False)
 local_planner.legibility_cost_type = "euclidean" # "cosine"
 plan_legibot = local_planner.full_plan(np.array(x0), dt=1)
 
@@ -56,7 +57,9 @@ else:
 
 plot_title += f" - cost =[{local_planner.legibility_cost_type}]"
 
-plot_path(plan_legibot, goals, obstacles, axs, title=plot_title)
+plan_smooth = smooth_trajectory(plan_legibot, num_points=len(plan_legibot) * 2)
+plot_path(plan_legibot, goals, obstacles, color='-ob', ax=axs, title=plot_title)
+plot_path(plan_smooth, goals, obstacles, color='-or', ax=axs, title=plot_title)
 plt.show()
 
 Visualizer().draw_path(plan_legibot)

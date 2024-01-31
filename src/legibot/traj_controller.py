@@ -41,6 +41,16 @@ class OdomHistory:
     def get_trajectory(self):
         return [Point2(msg.pose.pose.position.x, msg.pose.pose.position.y) for msg in self.history]
 
+    def get_instant_speed(self):
+        if len(self.history) < 2:
+            return 0
+        last_msg = self.history[-1]
+        prev_msg = self.history[-2]
+        dt = (last_msg.header.stamp - prev_msg.header.stamp).to_sec()
+        dx = last_msg.pose.pose.position.x - prev_msg.pose.pose.position.x
+        dy = last_msg.pose.pose.position.y - prev_msg.pose.pose.position.y
+        return ((dx**2 + dy**2)**0.5) / dt
+
 
 class TrajectoryController:
     def __init__(self, trajectory):
@@ -95,8 +105,9 @@ class TrajectoryController:
         d_angle = angle_to_unitary(angle_to_subgoal - self.robot_orien)
 
         # check for rotation
+        print("robot speed", self.odom_history.get_instant_speed())
         if abs(math.degrees(angle_to_unitary(angle_to_subgoal - self.robot_orien))) > 10:
-            command.linear.x = 0
+            command.linear.x = self.odom_history.get_instant_speed() * 4
             command.angular.z = 0.8 * sign(angle_to_unitary(angle_to_subgoal - self.robot_orien))
 
         else:

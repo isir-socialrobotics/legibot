@@ -73,7 +73,7 @@ class Visualizer(metaclass=Singleton):
                                       color, 2)
 
 
-def plot_path(path, goals, obstacles, ax=None, title=""):
+def plot_path(path, goals, obstacles, color='-or', ax=None, title=""):
     """
     :param path: path from x0 to goal
     :param goals: goal points
@@ -82,7 +82,7 @@ def plot_path(path, goals, obstacles, ax=None, title=""):
         ax = plt.gca()
 
     # plot the path
-    ax.plot([x[0] for x in path], [x[1] for x in path], '-or', label='Path')
+    ax.plot([x[0] for x in path], [x[1] for x in path], color, label='Path')
 
     # plot initial point
     ax.plot(path[0][0], path[0][1], 'ob', label='Initial Point', markersize=10)
