@@ -2,9 +2,30 @@
 <launch>
     <arg name="pepper_ip" default="169.254.164.67"/>
     <arg name="jetson_ip" default="169.254.164.0"/>
+    <arg name="pepper_password" default="isir302"/>
 
-    <!--  connect to Naoqi -->
-    <node name="run_naoqi_driver" pkg="naoqi_driver" type="naoqi_driver" output="screen"
-          args="--password isir302 --nao-ip ${pepper_ip} --roscore-ip ${jetson_ip}"/>
+<!--  Disable Pepper Autonomy    -->
+    <node name="disable_pepper_autonomy" pkg="legibot" type="disable_pepper_autonomy.py" output="screen">
+        <param name="pepper_ip" value="$(arg pepper_ip)"/>
+        <param name="pepper_password" value="$(arg pepper_password)"/>
+    </node>
+
+<!--  connect to Naoqi -->
+    <!-- roslaunch naoqi_driver naoqi_node.launch nao_ip:=169.254.164.67 roscore_ip:=169.254.164.0 password:isir302-->
+    <include file="$(find naoqi_driver)/launch/naoqi_driver.launch">
+            <arg name="nao_ip" value="$(arg pepper_ip)"/>
+            <arg name="roscore_ip" value="$(arg jetson_ip)"/>
+            <arg name="password" value="$(arg pepper_password)"/>
+    </include>
+    <!--     <node name="run_naoqi_driver" pkg="naoqi_driver" type="naoqi_driver" output="screen" -->
+    <!--           args="password isir302 nao-ip ${pepper_ip} roscore-ip ${jetson_ip}"/> -->
+
+<!--  call camera_capture (realsense)-->
+    <!-- ros2 launch realsense2_camera rs_launch.py -->
+
+<!--  call yolo-->
+    <!-- ros2 launch yolov8_bringup yolov8.launch.py model:=yolov8m-pose.engine -->
+    <!-- ros2 launch yolov8_bringup yolov8_3d.launch.py model:=yolov8m-pose.pt-->
+
 
 </launch>
