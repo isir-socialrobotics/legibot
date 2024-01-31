@@ -170,3 +170,6 @@ out/*
 *.thm
 *.dvi
 *.blg
+*.bcf
+
+*.rar
