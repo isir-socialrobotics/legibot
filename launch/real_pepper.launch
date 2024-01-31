@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<launch>
+    <arg name="pepper_ip" default="169.254.164.67"/>
+    <arg name="jetson_ip" default="169.254.164.0"/>
+
+    <!--  connect to Naoqi -->
+    <node name="run_naoqi_driver" pkg="naoqi_driver" type="naoqi_driver" output="screen"
+          args="--password isir302 --nao-ip ${pepper_ip} --roscore-ip ${jetson_ip}"/>
+
+</launch>
