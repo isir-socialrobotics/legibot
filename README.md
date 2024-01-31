@@ -23,6 +23,7 @@ sudo apt install python-is-python3 # use python3 as default python version:
 sudo apt-get install ros-$ROS_DISTRO-realsense2-camera ros-$ROS_DISTRO-librealsense2* realsense2-viewer
 cd ~/catkin_ws/src
 git clone https://github.com/ros-naoqi/naoqi_driver.git
+git clone https://github.com/pal-robotics/aruco_ros.git
 ```
 
 ### ROS2
@@ -31,6 +32,7 @@ sudo apt-get install ros-$ROS_DISTRO-realsense2-camera ros-$ROS_DISTRO-librealse
 cd ~/ros2_ws/src
 git clone https://github.com/ros-naoqi/naoqi_driver2.git
 git clone https://github.com/mgonzs13/yolov8_ros.git
+git clone https://github.com/JMU-ROBOTICS-VIVA/ros2_aruco.git
 ```
 
 source /home/jetson/catkin_ws/devel/setup.bash
