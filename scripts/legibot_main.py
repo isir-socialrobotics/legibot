@@ -8,6 +8,7 @@ from legibot.utils.gazebo_utils import gazebo_delete_robot
 def main():
     robot_x0 = (-3.0, 3.0, -1.57)
     observer_x0 = (-3.5, -8.5, 2.3)
+    robot_goal = (-2, -7.5)
 
     gazebo_delete_robot(robot_name="pepper")
     gazebo_delete_robot(robot_name="observer1")
@@ -21,8 +22,7 @@ def main():
         pass
 
     # read goal value
-    goal = rospy.get_param("/robot_controller/goal", "(-2,-7.5)")
-    goal = eval(goal)
+    goal = rospy.get_param("/robot_controller/goal", robot_goal)
     if len(goal) != 2:
         raise RuntimeError("Exiting Trajectory Controller: Invalid Goal")
 
