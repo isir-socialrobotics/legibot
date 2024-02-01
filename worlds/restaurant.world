@@ -57,43 +57,37 @@
       <heading_deg>0</heading_deg>
     </spherical_coordinates>
 
-    <include>
-      <name>ground_plane</name>
-      <pose>0 0 0 0 0 0</pose>
+    <include name='ground_plane'>
       <uri>model://ground_plane</uri>
+      <pose>0 0 0 0 0 0</pose>
     </include>
 
-    <include>
+    <include name="cafe">
       <uri>model://cafe</uri>
-      <name>cafe</name>
       <pose>0 0 0 0 0 0</pose>
       <static>true</static>
     </include>
 
-    <include>
+    <include name="table_1">
       <uri>model://round_table</uri>
-      <name>table_1</name>
       <pose>-2.5 -8 0 0 0 1.57</pose>
       <static>true</static>
     </include>
 
-    <include>
+    <include name="table_2">
       <uri>model://round_table</uri>
-      <name>table_2</name>
       <pose>-2.5 -4 0 0 0 1.57</pose>
       <static>true</static>
     </include>
 
-    <include>
+    <include name="person_2">
       <uri>model://person_standing</uri>
-      <name>person_2</name>
       <pose>2.2 -8 0.16 0 0 -1.5707</pose>
       <static>true</static>
     </include>
 
-    <include>
+    <include name="table_3">
       <uri>model://round_table</uri>
-      <name>table_3</name>
       <pose>1 -8 0 0 0 1.57</pose>
       <static>true</static>
     </include>
@@ -105,16 +99,14 @@
 <!--      <static>true</static>-->
 <!--    </include>-->
 
-    <include>
+    <include name="person_4">
       <uri>model://person_standing</uri>
-      <name>person_4</name>
       <pose>2.2 -4 0.16 0 0 -1.5707</pose>
       <static>true</static>
     </include>
 
-    <include>
+    <include name="round_table_1">
       <uri>model://round_table</uri>
-      <name>round_table_1</name>
       <pose>1 -4.0 0 0 0 1.57</pose>
       <static>true</static>
     </include>
