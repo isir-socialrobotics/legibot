@@ -97,7 +97,7 @@ class TrajectoryController:
             return command
         if self.is_reached(self.get_current_waypoint(), self.robot_xy):
             self.current_index += 1
-            return command
+            # return command
 
         next_subgoal = self.get_current_waypoint()
         subgoal_vec = Point(next_subgoal.x - self.robot_xy.x, next_subgoal.y - self.robot_xy.y, 0)
@@ -111,7 +111,7 @@ class TrajectoryController:
             command.angular.z = 0.8 * sign(angle_to_unitary(angle_to_subgoal - self.robot_orien))
 
         else:
-            command.linear.x = 1.5
+            command.linear.x = 1.2
             command.angular.z = angle_to_unitary(angle_to_subgoal - self.robot_orien) * 0.5  # small orien correction
 
         return command

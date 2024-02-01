@@ -191,6 +191,54 @@
   </link>
 <!---->
 
+  <joint name="caster_front_right_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="caster_front_right_link"/>
+    <origin xyz="0.1 -0.064 -0.004" rpy="-1.57 0 0"/>
+  </joint>
+
+  <link name="caster_front_right_link">
+    <collision>
+      <origin xyz="0 0.001 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.030 0.009 0.020"/>
+      </geometry>
+    </collision>
+
+    <inertial>
+      <origin xyz="0 0 0" />
+      <mass value="0.005" />
+      <inertia ixx="0.001" ixy="0.0" ixz="0.0"
+               iyy="0.001" iyz="0.0"
+               izz="0.001" />
+    </inertial>
+  </link>
+
+  <joint name="caster_front_left_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="caster_front_left_link"/>
+    <origin xyz="+0.1 0.064 -0.004" rpy="-1.57 0 0"/>
+  </joint>
+
+  <link name="caster_front_left_link">
+    <collision>
+      <origin xyz="0 0.001 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.030 0.009 0.020"/>
+      </geometry>
+    </collision>
+
+    <inertial>
+      <origin xyz="0 0 0" />
+      <mass value="0.005" />
+      <inertia ixx="0.001" ixy="0.0" ixz="0.0"
+               iyy="0.001" iyz="0.0"
+               izz="0.001" />
+    </inertial>
+  </link>
+
+<!--  -->
+
   <joint name="base_link_fixedjoint" type="fixed">
     <parent link="base_link"/>
     <child link="torso"/>
