@@ -57,57 +57,66 @@
       <heading_deg>0</heading_deg>
     </spherical_coordinates>
 
-    <include name='ground_plane'>
+    <include>
+      <name>ground_plane</name>
       <uri>model://ground_plane</uri>
       <pose>0 0 0 0 0 0</pose>
     </include>
 
-    <include name="cafe">
+    <include>
+      <name>cafe</name>
       <uri>model://cafe</uri>
       <pose>0 0 0 0 0 0</pose>
       <static>true</static>
     </include>
 
-    <include name="table_1">
+    <include>
+      <name>table_1</name>
       <uri>model://round_table</uri>
       <pose>-2.5 -8 0 0 0 1.57</pose>
       <static>true</static>
     </include>
+    <!-- No Person Here   -->
+    <!--    <include>-->
+    <!--      <uri>model://person_standing</uri>-->
+    <!--      <name>person_1</name>-->
+    <!--      <pose>-3.85 -4 0.16 0 0 1.5707</pose>-->
+    <!--      <static>true</static>-->
+    <!--    </include>-->
 
-    <include name="table_2">
+    <include>
+      <name>table_2</name>
       <uri>model://round_table</uri>
       <pose>-2.5 -4 0 0 0 1.57</pose>
       <static>true</static>
     </include>
+    <!-- No Person Here   -->
 
-    <include name="person_2">
-      <uri>model://person_standing</uri>
-      <pose>2.2 -8 0.16 0 0 -1.5707</pose>
-      <static>true</static>
-    </include>
-
-    <include name="table_3">
+    <include>
+      <name>table_3</name>
       <uri>model://round_table</uri>
       <pose>1 -8 0 0 0 1.57</pose>
       <static>true</static>
     </include>
 
-<!--    <include>-->
-<!--      <uri>model://person_standing</uri>-->
-<!--      <name>person_3</name>-->
-<!--      <pose>-3.85 -4 0.16 0 0 1.5707</pose>-->
-<!--      <static>true</static>-->
-<!--    </include>-->
-
-    <include name="person_4">
+    <include>
+      <name>person_3</name>
       <uri>model://person_standing</uri>
-      <pose>2.2 -4 0.16 0 0 -1.5707</pose>
+      <pose>2.2 -8 0.16 0 0 -1.5707</pose>
       <static>true</static>
     </include>
 
-    <include name="round_table_1">
+    <include>
+      <name>table_4</name>
       <uri>model://round_table</uri>
       <pose>1 -4.0 0 0 0 1.57</pose>
+      <static>true</static>
+    </include>
+
+    <include>
+      <name>person_4</name>
+      <uri>model://person_standing</uri>
+      <pose>2.2 -4 0.16 0 0 -1.5707</pose>
       <static>true</static>
     </include>
 
