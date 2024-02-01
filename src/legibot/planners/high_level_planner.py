@@ -8,6 +8,8 @@ from geometry_msgs.msg import Point, Pose, PoseArray
 from nav_msgs.msg import Odometry
 from tf.transformations import euler_from_quaternion
 
+from legibot.planners.smoother import smooth_trajectory
+
 sys.path.append(os.path.abspath(os.path.join(__file__, os.path.pardir, os.path.pardir, 'src')))
 from legibot.planners.local_planner import LocalPlanner
 from legibot.static_map import observers, obstacles
@@ -38,7 +40,9 @@ class MainPlanner:
 
         self._local_planner.optimal_speed_mps = 1
         plan = self._local_planner.full_plan(self.robot_xyt, dt=0.5, H=100)
-        self._controller.trajectory = [Point(p[0], p[1], 0) for p in plan]
+        plan_smooth = smooth_trajectory(plan, num_points=len(plan) * 2)
+
+        self._controller.trajectory = [Point(p[0], p[1], 0) for p in plan_smooth]
         self._controller.reset()
 
     def exec_loop(self):
