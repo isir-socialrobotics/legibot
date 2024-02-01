@@ -1,14 +1,8 @@
 import math
 import os
 import time
-from threading import Thread
-
-from typing import Tuple
-
-import roslaunch
 import rospy
 from gazebo_msgs.srv import DeleteModel, SpawnModel, GetWorldProperties
-from geometry_msgs.msg import Point, Pose, Quaternion
 from std_srvs.srv import Empty
 
 import glob
@@ -58,7 +52,7 @@ def list_of_existing_models():
     return world_properties.model_names
 
 
-def gazebo_delete_robot(timeout_sec=5, robot_name=""):
+def gazebo_delete_model(timeout_sec=5, robot_name=""):
     try:
         world_properties = gazebo_world_properties(timeout_sec)
         for name in world_properties.model_names:
