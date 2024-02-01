@@ -58,51 +58,11 @@ def list_of_existing_models():
     return world_properties.model_names
 
 
-def gazebo_delete_all_balls(timeout_sec=5):
+def gazebo_delete_robot(timeout_sec=5, robot_name=""):
     try:
         world_properties = gazebo_world_properties(timeout_sec)
         for name in world_properties.model_names:
-            if name.startswith("ball"):
-                rospy.wait_for_service("gazebo/delete_model", timeout=timeout_sec)
-                delete_model = rospy.ServiceProxy("gazebo/delete_model", DeleteModel)
-                delete_model(name)
-
-    except Exception as e:  # fixme: be more specific on errors
-        print("Error: Wait For Service (Gazebo/delete model) Failed!", e)
-
-
-def gazebo_spawn_ball(xy: Tuple, index=1):
-    rospy.wait_for_service("gazebo/spawn_sdf_model")
-    spawn_model = rospy.ServiceProxy("gazebo/spawn_sdf_model", SpawnModel)
-
-    tmp_file_to_save_tennis_ball_model_address = "/var/tmp/find-tennis-ball.txt"
-    os.system("locate tennis_ball/model.sdf > " + tmp_file_to_save_tennis_ball_model_address)
-    if os.path.exists(tmp_file_to_save_tennis_ball_model_address):
-        with open(tmp_file_to_save_tennis_ball_model_address) as f:
-            roslaunch_file = f.readline()
-            if len(roslaunch_file) == 0:
-                raise FileNotFoundError("Could not find spawn_vivebot.launch in your computer!")
-            else:
-                tennis_ball_file = roslaunch_file[:-1]
-
-    with open(tennis_ball_file, "r") as f:
-        tennis_ball_sdf = f.read()
-
-    ball_name = "ball{}".format(index)
-    while ball_name in list_of_existing_models():
-        index += 1
-        ball_name = "ball{}".format(index)
-
-    orient = Quaternion()
-    item_pose = Pose(Point(x=xy[0], y=xy[1], z=0.1), orient)
-    spawn_model(ball_name, tennis_ball_sdf, "", item_pose, "world")
-
-
-def gazebo_delete_vivebot(timeout_sec=5):
-    try:
-        world_properties = gazebo_world_properties(timeout_sec)
-        for name in world_properties.model_names:
-            if "vivebot" in name:
+            if robot_name in name:
                 rospy.wait_for_service("gazebo/delete_model", timeout=timeout_sec)
                 delete_model = rospy.ServiceProxy("gazebo/delete_model", DeleteModel)
                 delete_model(name)
@@ -125,21 +85,6 @@ def gazebo_find_launch_file(filename) -> str:
         else:
             roslaunch_file = roslaunch_file[:-1]
     return roslaunch_file
-
-
-def gazebo_spawn_vivebot(pose=(0, 0, 0)):
-    xyt0 = pose
-    print("To Spawn Robot @ [{:.2f}, {:.2f}], {:.2f}º".format(xyt0[0], xyt0[1], xyt0[2]))
-    try:
-        def call_roslaunch():
-            os.system(f"roslaunch vive-simulation spawn_vivebot.launch x:={xyt0[0]} y:={xyt0[1]} yaw:={xyt0[2]}")
-        Thread(target=call_roslaunch).start()
-        print("-----------------------")
-        time.sleep(3)  # wait for vivebot to spawn
-
-    except Exception as e:
-        print("Error: Gazebo Spawn Robot Failed!", e)
-
 
 def pause_gazebo():
     rospy.wait_for_service("gazebo/pause_physics")

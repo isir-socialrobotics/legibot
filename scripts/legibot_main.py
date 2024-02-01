@@ -2,24 +2,18 @@ import subprocess
 import rospy
 
 from legibot.planners.high_level_planner import MainPlanner
+from legibot.utils.gazebo_utils import gazebo_delete_robot
 
 
 def main():
-    # <!--   <include file="$(find legibot)/launch/spawn_pepper.launch" > -->
-    # <!--     <arg name="x" value="-3.0"/> -->
-    # <!--     <arg name="y" value="3.0"/> -->
-    # <!--     <arg name="yaw" value="-1.57"/> -->
-    # <!--   </include> -->
-    #
-    # <!--   <include file="$(find legibot)/launch/spawn_observer.launch"> -->
-    # <!--     <arg name="x" value="-3.5"/> -->
-    # <!--     <arg name="y" value="-8.5"/> -->
-    # <!--     <arg name="yaw" value="2.3"/> -->
-    # <!--     <arg name="obj_name" value="observer1" /> -->
-    # <!--   </include> -->
+    robot_x0 = (-3.0, 3.0, -1.57)
+    observer_x0 = (-3.5, -8.5, 2.3)
 
-    subprocess.Popen(["roslaunch", "legibot", "spawn_pepper.launch", "x:=-3.0", "y:=3.0", "yaw:=-1.57"])
-    subprocess.Popen(["roslaunch", "legibot", "spawn_observer.launch", "x:=-3.5", "y:=-8.5", "yaw:=2.3", "obj_name:=observer1"])
+    gazebo_delete_robot(robot_name="pepper")
+    gazebo_delete_robot(robot_name="observer1")
+
+    subprocess.Popen(["roslaunch", "legibot", "spawn_pepper.launch", f"x:={robot_x0[0]}", f"y:={robot_x0[1]}", f"yaw:={robot_x0[2]}"])
+    subprocess.Popen(["roslaunch", "legibot", "spawn_observer.launch", f"x:={observer_x0[0]}", f"y:={observer_x0[1]}", f"yaw:={observer_x0[2]}"])
 
     try:
         rospy.init_node('legibot_node')

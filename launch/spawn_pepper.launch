@@ -20,7 +20,7 @@
 <!--  New Pepper (with TurtleControl)  -->
   <param name="robot_description_pepper_v" command="$(find xacro)/xacro --inorder $(find legibot)/urdf/pepper.urdf.xacro" />
 
-  <node pkg="gazebo_ros" type="spawn_model" name="spawn_urdf_pepper_t"  args="-urdf -model pepper_tur
+  <node pkg="gazebo_ros" type="spawn_model" name="spawn_urdf_pepper_t"  args="-urdf -model pepper
     -param robot_description_pepper_v -x $(arg x) -y $(arg y) -z 0.12 -Y $(arg yaw)"
   />
 
