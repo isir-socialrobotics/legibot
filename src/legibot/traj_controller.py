@@ -105,7 +105,7 @@ class TrajectoryController:
         d_angle = angle_to_unitary(angle_to_subgoal - self.robot_orien)
 
         # check for rotation
-        print("robot speed", self.odom_history.get_instant_speed())
+        # print("robot speed", self.odom_history.get_instant_speed())
         if abs(math.degrees(angle_to_unitary(angle_to_subgoal - self.robot_orien))) > 10:
             command.linear.x = self.odom_history.get_instant_speed() * 4
             command.angular.z = 0.8 * sign(angle_to_unitary(angle_to_subgoal - self.robot_orien))
@@ -117,6 +117,13 @@ class TrajectoryController:
         return command
 
     def exec(self):
-        command = self.__calc_command__()
-        self.cmd_vel_pub.publish(command)
-        self.rate.sleep()
+        try:
+            command = self.__calc_command__()
+            self.cmd_vel_pub.publish(command)
+            self.rate.sleep()
+        except KeyboardInterrupt:
+            print("Shutting down")
+            self.cmd_vel_pub.publish(Twist())
+            rospy.sleep(1)
+            rospy.signal_shutdown("KeyboardInterrupt")
+            raise KeyboardInterrupt

@@ -2,7 +2,7 @@
 <launch>
 
   <include file="$(find gazebo_ros)/launch/empty_world.launch">
-    <arg name="world_name" value="$(find legibot)/worlds/restaurant.world"/>
+    <arg name="world_name" value="$(find legibot)/worlds/restaurant_empty.world"/>
     <arg name="paused" value="false"/>
     <arg name="verbose" value="true"/>
   </include>
@@ -20,19 +20,12 @@
     <arg name="obj_name" value="observer1" />
   </include>
 
-<!--   <include file="$(find legibot)/launch/spawn_observer.launch"> -->
-<!--     <arg name="x" value="-1.3"/> -->
-<!--     <arg name="y" value="-8"/> -->
-<!--     <arg name="yaw" value="1.8"/> -->
-<!--     <arg name="obj_name" value="observer2" /> -->
-<!--   </include> -->
-
 <!--   <include file="$(find teleop_twist_joy)/launch/teleop.launch" /> -->
 <!--   <node name="observer_recorder" pkg="legibot" type="record_observer.py" output="screen" /> -->
 
- <node name="robot_controller_py" pkg="legibot" type="hardcoded_planner.py" output="screen">
+<!--  <node name="robot_controller_py" pkg="legibot" type="hardcoded_planner.py" output="screen"> -->
 <!--       <param name="goal" value="(-2.6,-7.1)" type="str"/> -->  <!-- Not in the loop -->
-  </node>
+<!--   </node> -->
 
 <!--   <include file="$(find legibot)/launch/robot_controller.launch" /> -->
 <!--   <node name="legibility" pkg="legibot" type="opf_based_legibility.py" output="screen" /> -->

@@ -7,8 +7,8 @@
                 <pose>0 0 0.48 0 0 0</pose>
                 <geometry>
                     <cylinder>
-                        <radius>0.76</radius>
-                        <length>0.975</length>
+                        <radius>0.50</radius>
+                        <length>0.97</length>
                     </cylinder>
                 </geometry>
             </collision>
@@ -18,7 +18,7 @@
                 <geometry>
                     <mesh>
                         <uri>model://round_table/meshes/Table.dae</uri>
-                        <scale>75 75 75</scale>
+                        <scale>50 80 50</scale>
                     </mesh>
                 </geometry>
                     <script>

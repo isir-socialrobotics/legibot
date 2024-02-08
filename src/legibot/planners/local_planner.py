@@ -13,6 +13,7 @@ class LocalPlanner:
     def __init__(self, goals, obstacles, goal_idx, **kwargs):
         self.all_goals = goals
         self.goal_idx = goal_idx
+        self.goal_radius = 0.7  # m
         self.obstacles = obstacles
         self.enable_vis = kwargs.get("verbose", False)
 
@@ -30,9 +31,10 @@ class LocalPlanner:
         self.obstacle_radius = kwargs.get("obstacle_radius", 0.8)  # m (robot should keep this distance from obstacles)
         self.W = {"goal": kwargs.get("w_goal", 0.9),
                   "obstacle": kwargs.get("w_obstacle", 0.3),
-                  "speed": kwargs.get("w_speed", 0.8),
-                  "legibility": kwargs.get("w_legibility", 0.5),
-                  "smoothness": kwargs.get("w_smoothness", 0.2)}
+                  "speed": kwargs.get("w_speed", 0.6),
+                  "smoothness": kwargs.get("w_smoothness", 0.2),
+                  "legibility": kwargs.get("w_legibility", 0.8),
+                  }
         self.n_steps = kwargs.get("n_steps", 3)
 
         self.out_dir = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../../out"))
@@ -163,7 +165,7 @@ class LocalPlanner:
         return twist_star_vw, 0
 
     def step(self, xyt, dt) -> (np.ndarray, np.ndarray, bool):
-        if norm(xyt[:2] - self.all_goals[self.goal_idx]) < (self.robot_radius + dt * self.optimal_speed_mps):
+        if norm(xyt[:2] - self.all_goals[self.goal_idx]) < (self.goal_radius + self.robot_radius + dt * self.optimal_speed_mps):
             return [self.all_goals[self.goal_idx][0], self.all_goals[self.goal_idx][1], xyt[2]], True
 
         optimal_plan_other_goals = []

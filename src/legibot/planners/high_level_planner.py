@@ -12,7 +12,7 @@ from legibot.planners.smoother import smooth_trajectory
 
 sys.path.append(os.path.abspath(os.path.join(__file__, os.path.pardir, os.path.pardir, 'src')))
 from legibot.planners.local_planner import LocalPlanner
-from legibot.static_map import observers, obstacles
+from legibot.static_map import StaticMap
 from legibot.traj_controller import TrajectoryController
 from legibot.utils.bezier import Bezier
 
@@ -25,19 +25,21 @@ class MainPlanner:
         self.goal = g
         self.robot_xyt = None
         self._controller = TrajectoryController([])
-        self._local_planner = LocalPlanner(np.array([g] + observers), np.array(obstacles), 0, verbose=True)
+        self.static_map = StaticMap()
 
+        self._local_planner = None
         # self.goal_publisher = rospy.Publisher('/pepper/goals', PoseArray, queue_size=10)
         self._odom_sub = rospy.Subscriber('/odom', Odometry, self.odom_callback)
 
 
     # hardcode the trajectory
     def generate_trajectory(self):
-        sub_goals = [[-3, 1], [-1, 0], [1, -1.5]]  # legible
+        # sub_goals = [[-3, 1], [-1, 0], [1, -1.5]]  # legible
         # sub_goals = [[-3, -1], [-0.7, -2], [-1.5, -4]]  # illegible
         # traj_curve = get_bezier_path(self.robot_xyt[:2], self.goal, sub_goals)
         # self.hardcode_trajectory = [Point(p[0], p[1], 0) for p in traj_curve]
-
+        self._local_planner = LocalPlanner(np.array([self.goal] + self.static_map.observers),
+                                           np.array(self.static_map.obstacles), goal_idx=0, verbose=True)
         self._local_planner.optimal_speed_mps = 1
         plan = self._local_planner.full_plan(self.robot_xyt, dt=0.5, H=100)
         plan_smooth = smooth_trajectory(plan, num_points=len(plan) * 2)
@@ -51,6 +53,9 @@ class MainPlanner:
                 print("Waiting for robot position")
                 time.sleep(3)
                 continue
+
+            if len(self._controller.trajectory) == 0:
+                self.generate_trajectory()
 
             # next_x, _ = self._local_planner.step(self.robot_xyt[:2], dt=0.2)
             # self._controller.trajectory = [Point(next_x[0], next_x[1], 0)]
@@ -81,9 +86,6 @@ class MainPlanner:
                                             msg.pose.pose.orientation.y,
                                             msg.pose.pose.orientation.z,
                                             msg.pose.pose.orientation.w])[2]]
-        if self.robot_xyt is None:
-            self.robot_xyt = robot_xyt
-            self.generate_trajectory()
         self.robot_xyt = robot_xyt
 
 if __name__ == '__main__':
