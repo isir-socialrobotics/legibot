@@ -36,7 +36,8 @@
   <joint name="camera_joint" type="fixed">
     <parent link="base_link"/>
     <child link="camera_link"/>
-    <origin xyz="0.045 -0.15 1.78" rpy="0 0.4 -1.57"/>
+    <origin xyz="0.045 0.35 2.18" rpy="0 0.6 -1.57"/>
+<!--    <origin xyz="0.045 -0.15 1.78" rpy="0 0.4 -1.57"/>-->
   </joint>
 
 
@@ -60,7 +61,7 @@
     <sensor name="camera" type="camera">
       <camera name="rgb_camera">
 <!--        <horizontal_fov>1.047</horizontal_fov> &lt;!&ndash; in radians (approx 60 degrees) &ndash;&gt;-->
-        <horizontal_fov>1.8</horizontal_fov>
+        <horizontal_fov>2.2</horizontal_fov>
         <image>
           <width>1280</width> <!-- Image width in pixels -->
           <height>720</height> <!-- Image height in pixels -->

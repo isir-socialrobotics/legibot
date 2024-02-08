@@ -34,10 +34,10 @@ class LocalPlanner:
         self.optimal_speed_mps = kwargs.get("optimal_speed", 1.0)  # m/s (robot should keep this speed)
         self.obstacle_radius = kwargs.get("obstacle_radius", 0.8)  # m (robot should keep this distance from obstacles)
         self.W = {"goal": kwargs.get("w_goal", 0.9),
-                  "obstacle": kwargs.get("w_obstacle", 0.3),
+                  "obstacle": kwargs.get("w_obstacle", 0.2),
                   "speed": kwargs.get("w_speed", 0.6),
                   "smoothness": kwargs.get("w_smoothness", 0.2),
-                  "legibility": kwargs.get("w_legibility", 0.8),
+                  "legibility": kwargs.get("w_legibility", 0.6),
                   "fov": kwargs.get("w_fov", 4),
                   }
         self.n_steps = kwargs.get("n_steps", 3)

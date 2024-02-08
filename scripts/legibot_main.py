@@ -2,7 +2,6 @@ import math
 import os
 import subprocess
 import time
-
 import rospy
 
 from legibot.planners.high_level_planner import MainPlanner
@@ -13,9 +12,9 @@ from legibot.utils.gazebo_utils import gazebo_delete_model, gazebo_spawn_static_
 def main():
     robot_x0 = (-3.0, 3.0, -1.57)
 
-    observers = [(3.5, -2.5, 170),
-                 (3.5, -6.5, 160),
-                 (-3.5, -8.5, 20),
+    observers = [(2.5, -2.5, 170),
+                 (2.5, -6.5, 160),
+                 (-2.5, -8.5, -15),
                  ]
     robot_goal_idx = 0
 
@@ -41,9 +40,6 @@ def main():
     except rospy.exceptions.ROSException:
         print("Node already initialized")
 
-    # planner.static_map.persons
-    # planner.static_map.tables
-
     legibot_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
     round_table_sdf = os.path.join(legibot_dir, "models/round_table/model.sdf")
     person_standing_sdf = os.path.join(legibot_dir, "models/person_standing/model.sdf")
@@ -59,7 +55,6 @@ def main():
         # subprocess.Popen(["roslaunch", "legibot", "spawn_table.launch", f"x:={tables_xy[i][0]}", f"y:={tables_xy[i][1]}", f"yaw:={observers[i][2]}"])
         gazebo_spawn_static_model(f"table__{i}", round_table_sdf,
                                   f"{tables_xy[i][0]}, {tables_xy[i][1]}, 0, 0, 0, {observers[i][2]}", "world")
-        time.sleep(0.2)
 
         if i == robot_goal_idx:
             subprocess.Popen(["roslaunch", "legibot", "spawn_observer.launch", f"x:={observers[i][0]}",

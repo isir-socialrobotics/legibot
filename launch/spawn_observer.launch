@@ -10,6 +10,6 @@
   <param name="robot_description_person" command="cat '$(find legibot)/urdf/observer.urdf'" />
 
   <node name="spawn_$(arg obj_name)" pkg="gazebo_ros" type="spawn_model"
-  args="-urdf -param robot_description_person -x $(arg x) -y $(arg y) -z 1.0 -Y $(arg yaw) -model $(arg obj_name)"/>
+  args="-urdf -param robot_description_person -x $(arg x) -y $(arg y) -z 0.3 -Y $(arg yaw) -model $(arg obj_name)"/>
 
 </launch>
