@@ -12,11 +12,19 @@ from legibot.utils.gazebo_utils import gazebo_delete_model, gazebo_spawn_static_
 def main():
     robot_x0 = (-3.0, 3.0, -1.57)
 
+    # Scenario 1
     observers = [(2.5, -2.5, 170),
-                 (2.5, -6.5, 160),
                  (-2.5, -8.5, -15),
                  ]
-    robot_goal_idx = 0
+
+    # Scenario 2
+    # observers = [(2.5, -2.5, 170),
+    #              # (2, -4.5, 160),
+    #              # (2.5, -6.5, 160),
+    #              (-2.5, -8.5, -15),
+    #              ]
+
+    robot_goal_idx = 1  # 1
 
     # for each observer, create a table in front of them
     tables_xy = []

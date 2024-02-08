@@ -18,7 +18,7 @@ class LocalPlanner:
         self.goal_radius = 0.7  # m
         self.obstacles = obstacles
         self.enable_vis = kwargs.get("verbose", False)
-        self.observer_fov = kwargs.get("observer_fov", math.radians(80))  # radians
+        self.observer_fov = kwargs.get("observer_fov", math.radians(120))  # radians
 
         self.enable_legibility = kwargs.get("enable_legibility", True)
         self.legibility_cost_type = kwargs.get("legibility_cost_type", "cosine")  # ["cosine", "euclidean"]
@@ -32,12 +32,12 @@ class LocalPlanner:
 
         # Planner parameters
         self.optimal_speed_mps = kwargs.get("optimal_speed", 1.0)  # m/s (robot should keep this speed)
-        self.obstacle_radius = kwargs.get("obstacle_radius", 0.8)  # m (robot should keep this distance from obstacles)
+        self.obstacle_radius = kwargs.get("obstacle_radius", 1.2)  # m (robot should keep this distance from obstacles)
         self.W = {"goal": kwargs.get("w_goal", 0.9),
                   "obstacle": kwargs.get("w_obstacle", 0.2),
                   "speed": kwargs.get("w_speed", 0.6),
                   "smoothness": kwargs.get("w_smoothness", 0.2),
-                  "legibility": kwargs.get("w_legibility", 0.6),
+                  "legibility": kwargs.get("w_legibility", 1.5),
                   "fov": kwargs.get("w_fov", 4),
                   }
         self.n_steps = kwargs.get("n_steps", 3)
@@ -73,10 +73,10 @@ class LocalPlanner:
 
         cost_obs = self._cost_obstacle(next_xy, goal_xy)
 
-        cost_turn = np.abs(vel_twist[1])
+        cost_turn = np.abs(vel_twist[1]) ** 2
 
         # cost of deviating from optimal speed
-        cost_speed = (norm(displacement_vec) - self.optimal_speed_mps) ** 2
+        cost_speed = np.abs(norm(displacement_vec) - self.optimal_speed_mps) # ** 2
 
         return cost_goal * self.W["goal"], cost_obs * self.W["obstacle"], cost_speed * self.W["speed"], cost_turn * self.W["smoothness"]
 
@@ -98,9 +98,10 @@ class LocalPlanner:
         cost_turn_batch = np.abs(vel_twist_batch[:, 1])
 
         # cost of deviating from optimal speed
-        cost_speed_batch = (norm(displacement_vec_batch, axis=1) - self.optimal_speed_mps) ** 2
+        cost_speed_batch = np.abs(norm(displacement_vec_batch, axis=1) - self.optimal_speed_mps) # ** 2
 
-        return cost_goal_batch * self.W["goal"], cost_obs_batch * self.W["obstacle"], cost_speed_batch * self.W["speed"], cost_turn_batch * self.W["smoothness"]
+        return (cost_goal_batch * self.W["goal"], cost_obs_batch * self.W["obstacle"],
+                cost_speed_batch * self.W["speed"], cost_turn_batch * self.W["smoothness"])
 
     def _cost_legibility(self, cur_xyt, vel_twist_batch, dt, goal_xyt, dxy_other_goals):
         vel_twist_batch = np.reshape(vel_twist_batch, (-1, 2))
@@ -121,6 +122,7 @@ class LocalPlanner:
 
         if self.legibility_cost_type.lower() == "cosine":
             costs = dxy @ dxy_other_goals.T / (norm(dxy, axis=1).reshape(-1, 1) * norm(dxy_other_goals, axis=1).reshape(1, -1) + 1e-6)
+            costs = np.clip(costs - 0.75, 0, 1)
 
         elif self.legibility_cost_type.lower() == "euclidean":
             next_xy_other_goals = cur_xyt[:2] + dxy_other_goals
@@ -143,8 +145,8 @@ class LocalPlanner:
         return (legib_costs_weighted * self.W["legibility"] + fov_cost.reshape(-1, 1) * self.W["fov"]).reshape(-1)
 
     def __search_optimal_velocity__(self, xyt, dt, goal, illegible_v_stars=[]):
-        ang_speed_range = np.linspace(-np.pi/2, np.pi/2, 36)  # 10 deg
-        lin_speed_range = np.linspace(0, self.optimal_speed_mps, 11)
+        ang_speed_range = np.linspace(-np.pi, np.pi, 72)  # 10 deg
+        lin_speed_range = np.linspace(0.05, self.optimal_speed_mps, 30)
         speed_table = np.meshgrid(lin_speed_range, ang_speed_range)
         cost_map = np.zeros((len(ang_speed_range), len(lin_speed_range)))
 
@@ -171,9 +173,13 @@ class LocalPlanner:
         costs_batch = self._cost_task_batch(xyt, np.stack(speed_table, axis=-1).reshape(-1, 2), dt, goal)
         cost_batch = np.sum(costs_batch, axis=0)
         if len(illegible_v_stars) > 0 and self.enable_legibility:
-            cost_batch += self._cost_legibility(xyt, np.stack(speed_table, axis=-1).reshape(-1, 2), dt, goal, illegible_v_stars)
+            cost_legib_batch = self._cost_legibility(xyt, np.stack(speed_table, axis=-1).reshape(-1, 2), dt, goal, illegible_v_stars)
+            cost_batch += cost_legib_batch
         min_cost_idx = np.argmin(cost_batch)
         twist_star_vw = np.array([speed_table[0].flatten()[min_cost_idx], speed_table[1].flatten()[min_cost_idx]])
+
+        if len(illegible_v_stars) > 0 and self.enable_legibility:
+            print("legib cost: ", cost_legib_batch[min_cost_idx])
 
         return twist_star_vw, 0
 
