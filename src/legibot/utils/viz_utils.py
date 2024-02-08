@@ -49,12 +49,12 @@ class Visualizer(metaclass=Singleton):
                                         int(obstacle[2]*self.scale),
                            (0, 0, 0), -1)
 
-    def draw_goals(self, goals):
+    def draw_goals(self, goals, color=(0, 255, 0)):
         if self.mode == "opencv":
             for goal in goals:
                 g_xy = self.transform(goal[0], goal[1])
                 cv2.drawMarker(self.img, (int(g_xy[0]), int(g_xy[1])),
-                               (0, 255, 0), cv2.MARKER_CROSS, 20, 5)
+                               color, cv2.MARKER_CROSS, 20, 5)
 
     def draw_path(self, path):
         if self.mode == "opencv":

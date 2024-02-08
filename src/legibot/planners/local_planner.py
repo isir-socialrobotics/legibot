@@ -1,3 +1,4 @@
+import math
 import os
 from datetime import datetime
 import numpy as np
@@ -5,6 +6,7 @@ from typing import Tuple
 #from concurrent.futures import ThreadPoolExecutor
 from sklearn.metrics import pairwise_distances
 
+from legibot.static_map import StaticMap
 from legibot.utils.basic_math import cos_2_vecs, norm
 from legibot.utils.viz_utils import Visualizer
 
@@ -16,7 +18,7 @@ class LocalPlanner:
         self.goal_radius = 0.7  # m
         self.obstacles = obstacles
         self.enable_vis = kwargs.get("verbose", False)
-        self.observer_fov = kwargs.get("observer_fov", math.radians(75))  # radians
+        self.observer_fov = kwargs.get("observer_fov", math.radians(80))  # radians
 
         self.enable_legibility = kwargs.get("enable_legibility", True)
         self.legibility_cost_type = kwargs.get("legibility_cost_type", "cosine")  # ["cosine", "euclidean"]
@@ -24,6 +26,7 @@ class LocalPlanner:
         if self.enable_vis:
             Visualizer().draw_obstacles(obstacles)
             Visualizer().draw_goals(goals)
+            Visualizer().draw_goals(StaticMap().observers, color=(0, 255, 240))
 
         self.robot_radius = 0.3  # pepper?
 
@@ -35,6 +38,7 @@ class LocalPlanner:
                   "speed": kwargs.get("w_speed", 0.6),
                   "smoothness": kwargs.get("w_smoothness", 0.2),
                   "legibility": kwargs.get("w_legibility", 0.8),
+                  "fov": kwargs.get("w_fov", 4),
                   }
         self.n_steps = kwargs.get("n_steps", 3)
 
@@ -115,12 +119,6 @@ class LocalPlanner:
             ratio_goal_dist[ii] = dist_to_main_goal / dist_to_other_goal_i
         # print(f"max (ratio_goal_dist): {max(ratio_goal_dist):.2f}")
 
-        # cost of being out of the main observer's field of view
-        observer_unit_vec = np.array([np.cos(goal_xyt[2]), np.sin(goal_xyt[2])])
-        dxy_goal_normal_for_next_xy_batch = (next_xy_batch - goal_xyt[:2]) / (norm(next_xy_batch - goal_xyt[:2], axis=1).reshape(-1, 1) + 1e-6)
-        deviation_from_observer_center_of_view = np.abs(np.arccos(dxy_goal_normal_for_next_xy_batch @ observer_unit_vec))
-        fov_cost = 4 * np.clip((2 * deviation_from_observer_center_of_view / self.observer_fov) - 1, 0, 1)
-
         if self.legibility_cost_type.lower() == "cosine":
             costs = dxy @ dxy_other_goals.T / (norm(dxy, axis=1).reshape(-1, 1) * norm(dxy_other_goals, axis=1).reshape(1, -1) + 1e-6)
 
@@ -132,9 +130,17 @@ class LocalPlanner:
             raise ValueError(f"Unknown legibility cost type: {self.legibility_cost_type}")
 
         # apply weights for each non-main goal
-        costs_weighted = costs @ np.array(ratio_goal_dist).reshape(-1, 1) / len(dxy_other_goals)
+        legib_costs_weighted = costs @ np.array(ratio_goal_dist).reshape(-1, 1) / len(dxy_other_goals)
 
-        return (costs_weighted * self.W["legibility"] + fov_cost.reshape(-1, 1)).reshape(-1)
+        # cost of being out of the main observer's field of view
+        observer_unit_vec = np.array([np.cos(goal_xyt[2]), np.sin(goal_xyt[2])])
+        dxy_goal_normal_for_next_xy_batch = (next_xy_batch - goal_xyt[:2]) / (
+                    norm(next_xy_batch - goal_xyt[:2], axis=1).reshape(-1, 1) + 1e-6)
+        deviation_from_observer_center_of_view = np.abs(
+            np.arccos(dxy_goal_normal_for_next_xy_batch @ observer_unit_vec))
+        fov_cost = np.clip((2 * deviation_from_observer_center_of_view / self.observer_fov) - 1, 0, 10)
+
+        return (legib_costs_weighted * self.W["legibility"] + fov_cost.reshape(-1, 1) * self.W["fov"]).reshape(-1)
 
     def __search_optimal_velocity__(self, xyt, dt, goal, illegible_v_stars=[]):
         ang_speed_range = np.linspace(-np.pi/2, np.pi/2, 36)  # 10 deg

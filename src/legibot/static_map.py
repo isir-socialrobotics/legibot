@@ -19,7 +19,7 @@ class StaticMap(metaclass=Singleton):
         self.walls = self.conv_walls_to_obstacles(walls_list)
 
         self.human_radius = 0.3
-        self.table_radius = 0.75
+        self.table_radius = 0.6
         self.update()
 
         # tables_center_xy, observers_xy = self.parse_gazebo_world(

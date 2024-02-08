@@ -24,12 +24,12 @@ def main():
     for observer in observers:
         observer_xy = observer[:2]
         observer_yaw = math.radians(observer[2])
-        table_x = observer_xy[0] + 0.75 * math.cos(observer_yaw)
-        table_y = observer_xy[1] + 0.75 * math.sin(observer_yaw)
+        table_x = observer_xy[0] + 0.8 * math.cos(observer_yaw)
+        table_y = observer_xy[1] + 0.8 * math.sin(observer_yaw)
         tables_xy.append((table_x, table_y))
 
     robot_goal = (tables_xy[robot_goal_idx][0], tables_xy[robot_goal_idx][1], math.radians(observers[robot_goal_idx][2]))
-    other_goals = [(observers[i][0], observers[i][1], math.radians(observers[i][2]))
+    other_goals = [(tables_xy[i][0], tables_xy[i][1], math.radians(observers[i][2]))
                      for i in range(len(observers)) if i != robot_goal_idx]
 
     # read goal value
