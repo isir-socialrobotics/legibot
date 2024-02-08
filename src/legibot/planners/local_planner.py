@@ -11,14 +11,15 @@ from legibot.utils.viz_utils import Visualizer
 
 class LocalPlanner:
     def __init__(self, goals, obstacles, goal_idx, **kwargs):
-        self.all_goals = goals
+        self.all_goals_xyt = goals
         self.goal_idx = goal_idx
         self.goal_radius = 0.7  # m
         self.obstacles = obstacles
         self.enable_vis = kwargs.get("verbose", False)
+        self.observer_fov = kwargs.get("observer_fov", math.radians(75))  # radians
 
         self.enable_legibility = kwargs.get("enable_legibility", True)
-        self.legibility_cost_type = kwargs.get("legibility_cost_type", "euclidean")  # ["cosine", "euclidean"]
+        self.legibility_cost_type = kwargs.get("legibility_cost_type", "cosine")  # ["cosine", "euclidean"]
 
         if self.enable_vis:
             Visualizer().draw_obstacles(obstacles)
@@ -46,7 +47,7 @@ class LocalPlanner:
         D = np.sqrt(np.square(Dx) + np.square(Dy)) - self.obstacles[:, 2] - self.robot_radius
         D = np.min(D, axis=1)  # min distance from each point to any obstacle
         if g is not None:  # as we get closer to the goal, obstacles are less important (GNRON problem: Goal Nonreachable with Obstacles Nearby)
-            D = D / norm(xy - g, axis=1)
+            D = D / norm(xy - g[:2], axis=1)
         D = np.clip(D, 1e-3, 1000)
         cost_matrix = 0.2 / D
         cost_matrix[cost_matrix < 0.2/self.obstacle_radius] = 0
@@ -76,7 +77,7 @@ class LocalPlanner:
         return cost_goal * self.W["goal"], cost_obs * self.W["obstacle"], cost_speed * self.W["speed"], cost_turn * self.W["smoothness"]
 
     def _cost_task_batch(self, cur_xyt, vel_twist_batch, dt, goal_xy):
-        goal_vec = goal_xy - cur_xyt[:2]
+        goal_vec = goal_xy[:2] - cur_xyt[:2]
 
         cur_theta = cur_xyt[2]
         new_theta_batch = cur_theta + vel_twist_batch[:, 1] * dt
@@ -97,7 +98,7 @@ class LocalPlanner:
 
         return cost_goal_batch * self.W["goal"], cost_obs_batch * self.W["obstacle"], cost_speed_batch * self.W["speed"], cost_turn_batch * self.W["smoothness"]
 
-    def _cost_legibility(self, cur_xyt, vel_twist_batch, dt, goal_xy, dxy_other_goals):
+    def _cost_legibility(self, cur_xyt, vel_twist_batch, dt, goal_xyt, dxy_other_goals):
         vel_twist_batch = np.reshape(vel_twist_batch, (-1, 2))
         new_theta_batch = cur_xyt[2] + vel_twist_batch[:, 1] * dt
         dxy = (np.array([np.cos(new_theta_batch), np.sin(new_theta_batch)]) * vel_twist_batch[:, 0]).T * dt
@@ -106,13 +107,19 @@ class LocalPlanner:
         next_y_batch = cur_xyt[1] + np.sin(new_theta_batch) * vel_twist_batch[:, 0] * dt
         next_xy_batch = np.stack([next_x_batch, next_y_batch], axis=-1)
 
-        dist_to_main_goal = norm(goal_xy - cur_xyt[:2])
-        other_goals = [self.all_goals[i] for i in range(len(self.all_goals)) if i != self.goal_idx]
+        dist_to_main_goal = norm(goal_xyt[:2] - cur_xyt[:2])
+        other_goals = [self.all_goals_xyt[i] for i in range(len(self.all_goals_xyt)) if i != self.goal_idx]
         ratio_goal_dist = [0] * len(other_goals)
         for ii in range(len(other_goals)):
-            dist_to_other_goal_i = norm(other_goals[ii] - cur_xyt[:2])
+            dist_to_other_goal_i = norm(other_goals[ii][:2] - cur_xyt[:2])
             ratio_goal_dist[ii] = dist_to_main_goal / dist_to_other_goal_i
-        print(f"max (ratio_goal_dist): {max(ratio_goal_dist):.2f}")
+        # print(f"max (ratio_goal_dist): {max(ratio_goal_dist):.2f}")
+
+        # cost of being out of the main observer's field of view
+        observer_unit_vec = np.array([np.cos(goal_xyt[2]), np.sin(goal_xyt[2])])
+        dxy_goal_normal_for_next_xy_batch = (next_xy_batch - goal_xyt[:2]) / (norm(next_xy_batch - goal_xyt[:2], axis=1).reshape(-1, 1) + 1e-6)
+        deviation_from_observer_center_of_view = np.abs(np.arccos(dxy_goal_normal_for_next_xy_batch @ observer_unit_vec))
+        fov_cost = 4 * np.clip((2 * deviation_from_observer_center_of_view / self.observer_fov) - 1, 0, 1)
 
         if self.legibility_cost_type.lower() == "cosine":
             costs = dxy @ dxy_other_goals.T / (norm(dxy, axis=1).reshape(-1, 1) * norm(dxy_other_goals, axis=1).reshape(1, -1) + 1e-6)
@@ -127,10 +134,10 @@ class LocalPlanner:
         # apply weights for each non-main goal
         costs_weighted = costs @ np.array(ratio_goal_dist).reshape(-1, 1) / len(dxy_other_goals)
 
-        return (costs_weighted * self.W["legibility"]).reshape(-1)
+        return (costs_weighted * self.W["legibility"] + fov_cost.reshape(-1, 1)).reshape(-1)
 
     def __search_optimal_velocity__(self, xyt, dt, goal, illegible_v_stars=[]):
-        ang_speed_range = np.linspace(-np.pi, np.pi, 36)  # 10 deg
+        ang_speed_range = np.linspace(-np.pi/2, np.pi/2, 36)  # 10 deg
         lin_speed_range = np.linspace(0, self.optimal_speed_mps, 11)
         speed_table = np.meshgrid(lin_speed_range, ang_speed_range)
         cost_map = np.zeros((len(ang_speed_range), len(lin_speed_range)))
@@ -165,11 +172,11 @@ class LocalPlanner:
         return twist_star_vw, 0
 
     def step(self, xyt, dt) -> (np.ndarray, np.ndarray, bool):
-        if norm(xyt[:2] - self.all_goals[self.goal_idx]) < (self.goal_radius + self.robot_radius + dt * self.optimal_speed_mps):
-            return [self.all_goals[self.goal_idx][0], self.all_goals[self.goal_idx][1], xyt[2]], True
+        if norm(xyt[:2] - self.all_goals_xyt[self.goal_idx][:2]) < (self.goal_radius + self.robot_radius + dt * self.optimal_speed_mps):
+            return [self.all_goals_xyt[self.goal_idx][0], self.all_goals_xyt[self.goal_idx][1], xyt[2]], True
 
         optimal_plan_other_goals = []
-        other_goals = [self.all_goals[i] for i in range(len(self.all_goals)) if i != self.goal_idx]
+        other_goals = [self.all_goals_xyt[i] for i in range(len(self.all_goals_xyt)) if i != self.goal_idx]
         if self.enable_legibility:
             # find optimal local-plan for each potential goal
             for g_idx, goal in enumerate(other_goals):
@@ -181,10 +188,10 @@ class LocalPlanner:
                     new_xy = last_xyt[:2] + np.array([np.cos(new_theta), np.sin(new_theta)]) * vw_star_other[0] * dt
                     if self.enable_vis:
                         Visualizer().add_arrow(last_xyt[:2], new_xy, color=(0, 0, 255))
-                        Visualizer().show(2)
+                        Visualizer().show(20)
 
                     last_xyt = np.array([new_xy[0], new_xy[1], new_theta])
-                    optimal_plan_goal_i.append(vw_star_other)
+                    optimal_plan_goal_i.append(last_xyt[:2] - xyt[:2])
                 optimal_plan_other_goals.append(optimal_plan_goal_i)
 
         if len(optimal_plan_other_goals) > 0:
@@ -194,7 +201,7 @@ class LocalPlanner:
 
         sub_plan = [xyt]
         for step in range(self.n_steps):
-            vw_star, cost_map = self.__search_optimal_velocity__(xyt, dt, self.all_goals[self.goal_idx],
+            vw_star, cost_map = self.__search_optimal_velocity__(xyt, dt, self.all_goals_xyt[self.goal_idx],
                                                                  optimal_plan_other_goals[:, step])
             cur_theta = xyt[2]
             new_theta = cur_theta + vw_star[1] * dt

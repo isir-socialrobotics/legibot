@@ -21,8 +21,9 @@ def get_bezier_path(x0, g, subgoals):
     return np.stack(b.generate_curve(), axis=0).T
 
 class MainPlanner:
-    def __init__(self, g=None):
-        self.goal = g
+    def __init__(self, goals, goal_idx=0):
+        self.goals = goals
+        self.goal_idx = goal_idx
         self.robot_xyt = None
         self._controller = TrajectoryController([])
         self.static_map = StaticMap()
@@ -38,8 +39,8 @@ class MainPlanner:
         # sub_goals = [[-3, -1], [-0.7, -2], [-1.5, -4]]  # illegible
         # traj_curve = get_bezier_path(self.robot_xyt[:2], self.goal, sub_goals)
         # self.hardcode_trajectory = [Point(p[0], p[1], 0) for p in traj_curve]
-        self._local_planner = LocalPlanner(np.array([self.goal] + self.static_map.observers),
-                                           np.array(self.static_map.obstacles), goal_idx=0, verbose=True)
+        self._local_planner = LocalPlanner(np.array(self.goals),
+                                           np.array(self.static_map.obstacles), goal_idx=self.goal_idx, verbose=True)
         self._local_planner.optimal_speed_mps = 1
         plan = self._local_planner.full_plan(self.robot_xyt, dt=0.5, H=100)
         plan_smooth = smooth_trajectory(plan, num_points=len(plan) * 2)
@@ -60,7 +61,6 @@ class MainPlanner:
             # next_x, _ = self._local_planner.step(self.robot_xyt[:2], dt=0.2)
             # self._controller.trajectory = [Point(next_x[0], next_x[1], 0)]
             self._controller.exec()
-            # self.goal_publisher.publish(self.goal)
 
             # goal_array = PoseArray()
             # goal_array.header.frame_id = "odom"
@@ -100,7 +100,7 @@ if __name__ == '__main__':
     if len(goal) != 2:
         raise RuntimeError("Exiting Trajectory Controller: Invalid Goal")
 
-    planner = MainPlanner(goal)
+    planner = MainPlanner([goal])
     planner.exec_loop()
 
 

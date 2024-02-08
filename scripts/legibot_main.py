@@ -28,10 +28,9 @@ def main():
         table_y = observer_xy[1] + 0.75 * math.sin(observer_yaw)
         tables_xy.append((table_x, table_y))
 
-    robot_goal = tables_xy[robot_goal_idx]
-
-
-    print(f"Tables XY: {tables_xy}")
+    robot_goal = (tables_xy[robot_goal_idx][0], tables_xy[robot_goal_idx][1], math.radians(observers[robot_goal_idx][2]))
+    other_goals = [(observers[i][0], observers[i][1], math.radians(observers[i][2]))
+                     for i in range(len(observers)) if i != robot_goal_idx]
 
     # read goal value
     # goal = rospy.get_param("/robot_controller/goal", robot_goal)
@@ -75,7 +74,7 @@ def main():
     static_map.persons = [obs[:2] for obs in observers]
     static_map.update()
 
-    planner = MainPlanner(robot_goal)
+    planner = MainPlanner([robot_goal] + other_goals, goal_idx=0)
     planner.exec_loop()
 
 if __name__ == '__main__':

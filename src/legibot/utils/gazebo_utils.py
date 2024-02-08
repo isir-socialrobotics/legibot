@@ -54,7 +54,7 @@ def list_of_existing_models():
     return world_properties.model_names
 
 
-def gazebo_delete_model(timeout_sec=5, robot_name=""):
+def gazebo_delete_model(timeout_sec=3, robot_name=""):
     try:
         world_properties = gazebo_world_properties(timeout_sec)
         for name in world_properties.model_names:
