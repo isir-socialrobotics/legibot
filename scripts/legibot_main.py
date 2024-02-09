@@ -54,11 +54,13 @@ def main():
 
     # gazebo_delete_model(robot_name="table")
     gazebo_delete_model(robot_name="pepper")
+    subprocess.Popen(["roslaunch", "legibot", "spawn_pepper.launch", f"x:={robot_x0[0]}", f"y:={robot_x0[1]}", f"yaw:={robot_x0[2]}"])
+
+
     gazebo_delete_model(robot_name="observer")
     gazebo_delete_model(robot_name="table")
     gazebo_delete_model(robot_name="person")
 
-    subprocess.Popen(["roslaunch", "legibot", "spawn_pepper.launch", f"x:={robot_x0[0]}", f"y:={robot_x0[1]}", f"yaw:={robot_x0[2]}"])
     for i in range(len(observers)):
         # subprocess.Popen(["roslaunch", "legibot", "spawn_table.launch", f"x:={tables_xy[i][0]}", f"y:={tables_xy[i][1]}", f"yaw:={observers[i][2]}"])
         gazebo_spawn_static_model(f"table__{i}", round_table_sdf,
@@ -72,12 +74,19 @@ def main():
                                         f"{observers[i][0]}, {observers[i][1]}, 0.16, 0, 0, {math.radians(observers[i][2])+ math.pi/2}", "world")
         time.sleep(0.2)
 
+    # restart observer node
+    subprocess.Popen(["rosnode", "kill", "/record_observer"])
+    time.sleep(0.2)
+    subprocess.Popen(["rosrun", "legibot", "record_observer.py"])
+
     static_map = StaticMap()
     static_map.tables = tables_xy
     static_map.persons = [obs[:2] for obs in observers]
     static_map.update()
 
-    planner = MainPlanner([robot_goal] + other_goals, goal_idx=0)
+    planner = MainPlanner([robot_goal] + other_goals, goal_idx=0, robot_xyt0=robot_x0, enable_legibilit=False)
+
+    planner.generate_trajectory()
     planner.exec_loop()
 
 if __name__ == '__main__':

@@ -7,6 +7,7 @@ import argparse
 import cv2
 import numpy as np
 import rospy
+from geometry_msgs.msg import Twist
 from sensor_msgs.msg import Image, CameraInfo
 import sys
 
@@ -27,6 +28,9 @@ class ROSVideoRecorder:
         self.last_image = None
         self.image_sub = rospy.Subscriber(self.topic + '/image_raw', Image, self.image_callback)
         self.camera_info_sub = rospy.Subscriber(self.topic + '/camera_info', CameraInfo, self.camera_info_callback)
+        self.cmd_vel_sub = rospy.Subscriber('/cmd_vel', Twist, self.cmd_vel_callback)
+        self.rate = rospy.Rate(2)
+        self.last_timestamp = -1
         # self.flow_image_pub = rospy.Publisher(self.topic + '/optical_flow', Image, queue_size=1)
 
     def optical_flow(self, image1, image2):
@@ -45,10 +49,14 @@ class ROSVideoRecorder:
         cv2.waitKey(1)
         return flow_im
 
+    def cmd_vel_callback(self, msg: Twist):
+        self.last_timestamp = rospy.get_time()
+
     def image_callback(self, msg: Image):
         image = np.frombuffer(msg.data, dtype=np.uint8).reshape((msg.height, msg.width, -1))
         if self.writer is None and self.image_size is not None:
             self.writer = cv2.VideoWriter(self.output_path, cv2.VideoWriter_fourcc(*'XVID'), self.fps, self.image_size)
+            self.writer.set(cv2.VIDEOWRITER_PROP_QUALITY, 100)
 
         if self.is_recording and self.writer is not None:
             self.writer.write(image)
@@ -60,11 +68,6 @@ class ROSVideoRecorder:
         self.last_image = image
         # print("Recorder: Recording" if self.is_recording else "Recorder: Waiting for start...")
 
-        cv2.imshow('image', image)
-        k = cv2.waitKey(1)
-        if k == ord('q'):
-            self.stop()
-
     def camera_info_callback(self, msg):
         self.image_size = (msg.width, msg.height)
         self.camera_info_sub.unregister()
@@ -74,8 +77,10 @@ class ROSVideoRecorder:
 
     def stop(self):
         self.is_recording = False
-        self.writer.release()
+        if self.writer is not None:
+            self.writer.release()
         print("Recorder: Done!")
+        print("Recorder: Video saved to", self.output_path)
 
 
 if __name__ == "__main__":
@@ -100,7 +105,17 @@ if __name__ == "__main__":
             recorder = ROSVideoRecorder(args, '/observer/camera', os.path.join(target_dir, f'observer-{datatime_str}.avi'))
 
             recorder.start()
-            rospy.spin()
+            while True:
+                if recorder.last_timestamp >0 and rospy.get_time() - recorder.last_timestamp > 3:
+                    print("Recorder: No robot commande detected for 3 seconds. Stopping recording...")
+                    break
+                if recorder.last_image is not None:
+                    cv2.imshow('image', recorder.last_image)
+                k = cv2.waitKey(10)
+                if k == 27:  # if ESC is pressed, exit the program
+                    raise KeyboardInterrupt
+
+                recorder.rate.sleep()
         except KeyboardInterrupt:
             print("Recorder: KeyboardInterrupt")
 
@@ -109,3 +124,11 @@ if __name__ == "__main__":
 
     if recorder is not None:
         recorder.stop()
+
+    if os.path.exists(recorder.output_path) and os.path.getsize(recorder.output_path) < 1000:
+        os.remove(recorder.output_path)
+        print("Recorder: Video removed as it's too small")
+
+    else: # compress the video
+        os.system(f"ffmpeg -i {recorder.output_path} -vcodec libx264 -crf 28 {recorder.output_path.replace('.avi', '.mp4')}")
+        print("Recorder: Video compressed to", recorder.output_path.replace('.avi', '.mp4'))

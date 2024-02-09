@@ -21,14 +21,14 @@ def get_bezier_path(x0, g, subgoals):
     return np.stack(b.generate_curve(), axis=0).T
 
 class MainPlanner:
-    def __init__(self, goals, goal_idx=0):
+    def __init__(self, goals, goal_idx=0, robot_xyt0=None, **kwargs):
         self.goals = goals
         self.goal_idx = goal_idx
-        self.robot_xyt = None
+        self.robot_xyt = robot_xyt0
         self._controller = TrajectoryController([])
         self.static_map = StaticMap()
-
-        self._local_planner = None
+        self._local_planner = LocalPlanner(np.array(self.goals),
+                                           np.array(self.static_map.obstacles), goal_idx=self.goal_idx, verbose=True, **kwargs)
         # self.goal_publisher = rospy.Publisher('/pepper/goals', PoseArray, queue_size=10)
         self._odom_sub = rospy.Subscriber('/odom', Odometry, self.odom_callback)
 
@@ -39,8 +39,7 @@ class MainPlanner:
         # sub_goals = [[-3, -1], [-0.7, -2], [-1.5, -4]]  # illegible
         # traj_curve = get_bezier_path(self.robot_xyt[:2], self.goal, sub_goals)
         # self.hardcode_trajectory = [Point(p[0], p[1], 0) for p in traj_curve]
-        self._local_planner = LocalPlanner(np.array(self.goals),
-                                           np.array(self.static_map.obstacles), goal_idx=self.goal_idx, verbose=True)
+
         self._local_planner.optimal_speed_mps = 1
         plan = self._local_planner.full_plan(self.robot_xyt, dt=0.5, H=100)
         plan_smooth = smooth_trajectory(plan, num_points=len(plan) * 2)

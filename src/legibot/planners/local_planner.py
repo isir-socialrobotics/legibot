@@ -15,7 +15,7 @@ class LocalPlanner:
     def __init__(self, goals, obstacles, goal_idx, **kwargs):
         self.all_goals_xyt = goals
         self.goal_idx = goal_idx
-        self.goal_radius = 0.7  # m
+        self.goal_radius = 0.5  # m
         self.obstacles = obstacles
         self.enable_vis = kwargs.get("verbose", False)
         self.observer_fov = kwargs.get("observer_fov", math.radians(120))  # radians
@@ -131,24 +131,28 @@ class LocalPlanner:
         else:
             raise ValueError(f"Unknown legibility cost type: {self.legibility_cost_type}")
 
-        # apply weights for each non-main goal
-        legib_costs_weighted = costs @ np.array(ratio_goal_dist).reshape(-1, 1) / len(dxy_other_goals)
-
         # cost of being out of the main observer's field of view
         observer_unit_vec = np.array([np.cos(goal_xyt[2]), np.sin(goal_xyt[2])])
         dxy_goal_normal_for_next_xy_batch = (next_xy_batch - goal_xyt[:2]) / (
                     norm(next_xy_batch - goal_xyt[:2], axis=1).reshape(-1, 1) + 1e-6)
         deviation_from_observer_center_of_view = np.abs(
-            np.arccos(dxy_goal_normal_for_next_xy_batch @ observer_unit_vec))
-        fov_cost = np.clip((2 * deviation_from_observer_center_of_view / self.observer_fov) - 1, 0, 10)
+            np.arccos(dxy_goal_normal_for_next_xy_batch @ observer_unit_vec))  # radians
+        fov_cost = 1/(1+np.exp(-(deviation_from_observer_center_of_view / (self.observer_fov/2) - 1)))
+        observability = np.clip(1 - deviation_from_observer_center_of_view / (self.observer_fov/2), 0, 1)
+        observability[observability > 0] = 1
+        # print(f"min (observability): {min(observability):.2f} max (observability): {max(observability):.2f}")
+        # print(f"min (dev): {min(deviation_from_observer_center_of_view):.2f} max (dev): {max(deviation_from_observer_center_of_view):.2f}")
+        # print(f"min (fov_cost): {min(fov_cost):.2f} max (fov_cost): {max(fov_cost):.2f}")
+
+        # apply weights for each non-main goal
+        legib_costs_weighted = costs @ np.array(ratio_goal_dist).reshape(-1, 1) * observability.reshape(-1, 1) / len(dxy_other_goals)
 
         return (legib_costs_weighted * self.W["legibility"] + fov_cost.reshape(-1, 1) * self.W["fov"]).reshape(-1)
 
     def __search_optimal_velocity__(self, xyt, dt, goal, illegible_v_stars=[]):
-        ang_speed_range = np.linspace(-np.pi, np.pi, 72)  # 10 deg
-        lin_speed_range = np.linspace(0.05, self.optimal_speed_mps, 30)
+        ang_speed_range = np.linspace(-np.pi, np.pi, 36)  # 10 deg
+        lin_speed_range = np.linspace(0.05, self.optimal_speed_mps, 10)
         speed_table = np.meshgrid(lin_speed_range, ang_speed_range)
-        cost_map = np.zeros((len(ang_speed_range), len(lin_speed_range)))
 
         ## Parallel version
         # def calculate_cost(ij_tuple):
@@ -178,8 +182,14 @@ class LocalPlanner:
         min_cost_idx = np.argmin(cost_batch)
         twist_star_vw = np.array([speed_table[0].flatten()[min_cost_idx], speed_table[1].flatten()[min_cost_idx]])
 
-        if len(illegible_v_stars) > 0 and self.enable_legibility:
-            print("legib cost: ", cost_legib_batch[min_cost_idx])
+        if self.enable_vis and len(illegible_v_stars) > 0 and self.enable_legibility:
+            angle_range = [xyt[2] + ang_speed_range[0] * dt, xyt[2] + ang_speed_range[-1] * dt]
+            radius_range = [lin_speed_range[0] * dt, lin_speed_range[-1] * dt]
+            # Visualizer().draw_heatmap(xyt[:2], cost_batch.reshape(len(lin_speed_range), len(lin_speed_range)), radius_range, angle_range)
+            Visualizer().draw_heatmap(xyt[:2], cost_legib_batch.reshape(len(ang_speed_range), len(lin_speed_range)), radius_range, angle_range)
+
+        # if len(illegible_v_stars) > 0 and self.enable_legibility:
+        #     print("legib cost: ", cost_legib_batch[min_cost_idx])
 
         return twist_star_vw, 0
 

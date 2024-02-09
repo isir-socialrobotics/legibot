@@ -63,8 +63,8 @@
 <!--        <horizontal_fov>1.047</horizontal_fov> &lt;!&ndash; in radians (approx 60 degrees) &ndash;&gt;-->
         <horizontal_fov>2.2</horizontal_fov>
         <image>
-          <width>1280</width> <!-- Image width in pixels -->
-          <height>720</height> <!-- Image height in pixels -->
+          <width>1920</width> <!-- Image width in pixels -->
+          <height>1080</height> <!-- Image height in pixels -->
           <format>B8G8R8</format> <!-- RGB format -->
         </image>
         <clip>

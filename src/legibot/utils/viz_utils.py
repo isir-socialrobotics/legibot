@@ -24,6 +24,7 @@ class Visualizer(metaclass=Singleton):
             cv2.imshow(title, cv2.flip(self.img, 0))
             k = cv2.waitKey(delay)
             if k == 27: # if ESC is pressed, exit the program
+                print("Exiting...")
                 exit()
 
     def save(self, filename):
@@ -72,6 +73,23 @@ class Visualizer(metaclass=Singleton):
                                       (int(uv_trans[0]), int(uv_trans[1])),
                                       color, 2)
 
+    def draw_heatmap(self, xy_center, polar_cost_map, radius_range, angle_range):
+
+        new_img = np.ones((self.im_size[0], self.im_size[1], 3), dtype=np.uint8) * 255
+        polar_cost_map_uint = (polar_cost_map - polar_cost_map.min()) / (polar_cost_map.max() - polar_cost_map.min()) * 255
+        if self.mode == "opencv":
+            for i in range(polar_cost_map.shape[0]):
+                for j in range(polar_cost_map.shape[1]):
+                    angle = angle_range[0] + i * (angle_range[1] - angle_range[0]) / polar_cost_map.shape[0]
+                    radius = radius_range[0] + j * (radius_range[1] - radius_range[0]) / polar_cost_map.shape[1]
+                    x = xy_center[0] + radius * np.cos(angle) * 6
+                    y = xy_center[1] + radius * np.sin(angle) * 6
+                    x, y = self.transform(x, y)
+                    color = polar_cost_map_uint[i, j]
+                    cv2.circle(new_img, (int(x), int(y)), 5, (255-color, 0, color), -1)
+
+        cv2.imshow("Heatmap", cv2.flip(new_img, 0))
+        cv2.waitKey(50)
 
 def plot_path(path, goals, obstacles, color='-or', ax=None, title=""):
     """
