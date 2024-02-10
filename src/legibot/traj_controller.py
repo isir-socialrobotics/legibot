@@ -5,6 +5,7 @@ from geometry_msgs.msg import Point
 from tf.transformations import euler_from_quaternion
 from geometry_msgs.msg import Twist
 from legibot.utils.point2d import Point2
+from legibot.utils.viz_utils import Visualizer
 
 
 def angle_to_unitary(angle_rad):
@@ -120,6 +121,7 @@ class TrajectoryController:
         try:
             command = self.__calc_command__()
             self.cmd_vel_pub.publish(command)
+            # Visualizer().show(delay=10)
             self.rate.sleep()
         except KeyboardInterrupt:
             print("Shutting down")
