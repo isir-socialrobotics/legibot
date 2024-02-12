@@ -108,7 +108,7 @@ def plot_path(path, goals, obstacles, color='-or', ax=None, title=""):
 
     for goal in goals:
         # show goals with x marks
-        ax.plot(goal[0], goal[1], 'xg', markersize=10,
+        ax.plot(goal[0], goal[1], '+g', markersize=10,
                 label='Goal' if 'Goal' not in ax.get_legend_handles_labels()[1] else "")
 
     for obstacle in obstacles:

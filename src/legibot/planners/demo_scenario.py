@@ -1,3 +1,5 @@
+import math
+
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -7,17 +9,18 @@ from legibot.utils.viz_utils import plot_path, Visualizer
 
 x0 = [0, 0, 0]
 goals = np.array([
-                  [10, 10],
+                  [10, 10, math.radians(-135)],
                   # [3, 9],
-                  [9, 1],
-                  [9.55, 4]
+                  [9, 1, math.radians(180)],
+                  [9.55, 4, math.radians(180)]
                   ])
 goal_idx = 0
 
 obstacles = np.array([
-                      [5, 5.5, 1],
-                      [2, 8, 1],
-                      [8, 8, 1],
+                      [5, 5.5, 0.5],
+                      [2, 8, 0.5],
+                      [8, 8, 0.5],
+                      [9.8, 9.8, 0.5],
                       ])
 Visualizer().world_x_range = (-1.5, 12)
 Visualizer().world_y_range = (-1.5, 12)
@@ -43,7 +46,7 @@ Visualizer().reset()
 #             field[j, i, 0] = f[0]
 #             field[j, i, 1] = -f[1]
 
-local_planner = LocalPlanner(goals, obstacles, goal_idx, verbose=False)
+local_planner = LocalPlanner(goals, obstacles, goal_idx, verbose=False, enable_legibility=True)
 local_planner.legibility_cost_type = "euclidean" # "cosine"
 plan_legibot = local_planner.full_plan(np.array(x0), dt=1)
 

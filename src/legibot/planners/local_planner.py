@@ -44,14 +44,26 @@ class LocalPlanner:
 
         self.out_dir = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../../out"))
 
-    def _cost_obstacle(self, xy, g=None):  # xy can be a point or a batch of points
-        xy = xy.reshape(-1, 2)
-        Dx = pairwise_distances(xy[:, 0].reshape(-1, 1), self.obstacles[:, 0].reshape(-1, 1))
-        Dy = pairwise_distances(xy[:, 1].reshape(-1, 1), self.obstacles[:, 1].reshape(-1, 1))
-        D = np.sqrt(np.square(Dx) + np.square(Dy)) - self.obstacles[:, 2] - self.robot_radius
+    def _cost_obstacle(self, cur_xy, next_xy, goal_xy=None):  # xy can be a point or a batch of points
+        next_xy = next_xy.reshape(-1, 2)
+        Dx = pairwise_distances(next_xy[:, 0].reshape(-1, 1), self.obstacles[:, 0].reshape(-1, 1))
+        Dy = pairwise_distances(next_xy[:, 1].reshape(-1, 1), self.obstacles[:, 1].reshape(-1, 1))
+        D_center2center = np.sqrt(np.square(Dx) + np.square(Dy))
+        D = D_center2center - self.obstacles[:, 2] - self.robot_radius
+
+        # (GNRON problem: Goal Nonreachable with Obstacles Nearby)
+        # OCP ≡ Obstacle Closest Points
+        OCP_x = self.obstacles[:, 0] + Dx * (self.obstacles[:, 2] + self.robot_radius )/ D_center2center
+        OCP_y = self.obstacles[:, 1] + Dy * (self.obstacles[:, 2] + self.robot_radius )/ D_center2center
+        D[np.sqrt(np.square(OCP_x - goal_xy[0]) + np.square(OCP_y - goal_xy[1])) < self.goal_radius] = 1000 # ignore obstacles within the goal radius
+
         D = np.min(D, axis=1)  # min distance from each point to any obstacle
-        if g is not None:  # as we get closer to the goal, obstacles are less important (GNRON problem: Goal Nonreachable with Obstacles Nearby)
-            D = D / norm(xy - g[:2], axis=1)
+
+
+        if goal_xy is not None:  # as we get closer to the goal, obstacles are less important
+            D = D / norm(next_xy - goal_xy[:2], axis=1)
+
+
         D = np.clip(D, 1e-3, 1000)
         cost_matrix = 0.2 / D
         cost_matrix[cost_matrix < 0.2/self.obstacle_radius] = 0
@@ -71,7 +83,7 @@ class LocalPlanner:
         cost_goal = 1 - cos_2_vecs(displacement_vec, goal_vec)
         cost_goal += norm(goal_xy - next_xy) / norm(goal_xy - cur_xyt[:2])  # this is not a good idea
 
-        cost_obs = self._cost_obstacle(next_xy, goal_xy)
+        cost_obs = self._cost_obstacle(cur_xyt, next_xy, goal_xy)
 
         cost_turn = np.abs(vel_twist[1]) ** 2
 
@@ -94,7 +106,7 @@ class LocalPlanner:
         # cost of deviating from goal direction
         cost_goal_batch = 1 - displacement_vec_batch @ goal_vec / (norm(displacement_vec_batch, axis=1) * norm(goal_vec) + 1e-6)
 
-        cost_obs_batch = self._cost_obstacle(next_xy_batch, goal_xy)
+        cost_obs_batch = self._cost_obstacle(cur_xyt, next_xy_batch, goal_xy)
         cost_turn_batch = np.abs(vel_twist_batch[:, 1])
 
         # cost of deviating from optimal speed
