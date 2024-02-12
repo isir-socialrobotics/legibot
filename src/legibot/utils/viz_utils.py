@@ -73,8 +73,7 @@ class Visualizer(metaclass=Singleton):
                                       (int(uv_trans[0]), int(uv_trans[1])),
                                       color, 2)
 
-    def draw_heatmap(self, xy_center, polar_cost_map, radius_range, angle_range):
-
+    def draw_heatmap(self, xy_center, polar_cost_map, radius_range, angle_range, title="Heatmap"):
         new_img = np.ones((self.im_size[0], self.im_size[1], 3), dtype=np.uint8) * 255
         polar_cost_map_uint = (polar_cost_map - polar_cost_map.min()) / (polar_cost_map.max() - polar_cost_map.min()) * 255
         if self.mode == "opencv":
@@ -88,7 +87,7 @@ class Visualizer(metaclass=Singleton):
                     color = polar_cost_map_uint[i, j]
                     cv2.circle(new_img, (int(x), int(y)), 5, (255-color, 0, color), -1)
 
-        cv2.imshow("Heatmap", cv2.flip(new_img, 0))
+        cv2.imshow(title, cv2.flip(new_img, 0))
         cv2.waitKey(50)
 
 def plot_path(path, goals, obstacles, color='-or', ax=None, title=""):

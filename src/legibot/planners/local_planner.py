@@ -15,7 +15,6 @@ class LocalPlanner:
     def __init__(self, goals, obstacles, goal_idx, **kwargs):
         self.all_goals_xyt = goals
         self.goal_idx = goal_idx
-        self.goal_radius = 0.5  # m
         self.obstacles = obstacles
         self.enable_vis = kwargs.get("verbose", False)
         self.observer_fov = kwargs.get("observer_fov", math.radians(120))  # radians
@@ -29,16 +28,19 @@ class LocalPlanner:
             Visualizer().draw_goals(StaticMap().observers, color=(0, 255, 240))
 
         self.robot_radius = 0.3  # pepper?
+        self.goal_radius = 0.5  # m
+        self.obstacle_radius = kwargs.get("obstacle_radius", 0.5)  # m (robot should keep this distance from obstacles)
+        self.obstacle_radius_big = 2.0  # used to slow down the robot when it gets close to obstacles
+
+        self.optimal_speed_mps = kwargs.get("optimal_speed", 1.0)  # m/s (robot should keep this speed)
 
         # Planner parameters
-        self.optimal_speed_mps = kwargs.get("optimal_speed", 1.0)  # m/s (robot should keep this speed)
-        self.obstacle_radius = kwargs.get("obstacle_radius", 1.0)  # m (robot should keep this distance from obstacles)
         self.W = {"goal": kwargs.get("w_goal", 0.9),
-                  "obstacle": kwargs.get("w_obstacle", 0.2),
+                  "obstacle": kwargs.get("w_obstacle", 0.8),
                   "speed": kwargs.get("w_speed", 0.6),
                   "smoothness": kwargs.get("w_smoothness", 0.2),
                   "legibility": kwargs.get("w_legibility", 1.5),
-                  "fov": kwargs.get("w_fov", 2),
+                  "fov": kwargs.get("w_fov", 2), # applies only when legibility is enabled
                   }
         self.n_steps = kwargs.get("n_steps", 3)
 
@@ -51,22 +53,33 @@ class LocalPlanner:
         D_center2center = np.sqrt(np.square(Dx) + np.square(Dy))
         D = D_center2center - self.obstacles[:, 2] - self.robot_radius
 
-        # (GNRON problem: Goal Nonreachable with Obstacles Nearby)
-        # OCP ≡ Obstacle Closest Points
-        OCP_x = self.obstacles[:, 0] + Dx * (self.obstacles[:, 2] + self.robot_radius )/ D_center2center
-        OCP_y = self.obstacles[:, 1] + Dy * (self.obstacles[:, 2] + self.robot_radius )/ D_center2center
-        D[np.sqrt(np.square(OCP_x - goal_xy[0]) + np.square(OCP_y - goal_xy[1])) < self.goal_radius] = 1000 # ignore obstacles within the goal radius
 
-        D = np.min(D, axis=1)  # min distance from each point to any obstacle
+        # Handle GNRON problem (Goal Nonreachable with Obstacles Nearby)
+        if goal_xy is not None:
+            w_dist_to_goal = 1 / norm(next_xy - goal_xy[:2], axis=1).reshape(-1, 1)
+            # OCP (Obstacle Closest Point)
+            OCP_x = self.obstacles[:, 0] + Dx * (self.obstacles[:, 2] + self.robot_radius )/ D_center2center
+            OCP_y = self.obstacles[:, 1] + Dy * (self.obstacles[:, 2] + self.robot_radius )/ D_center2center
+            # ignore obstacles within the goal radius
+            D[np.sqrt(np.square(OCP_x - goal_xy[0]) + np.square(OCP_y - goal_xy[1])) < self.goal_radius] = 1000
+        else:
+            w_dist_to_goal = 1
 
+        d_cur = cur_xy[:2] - self.obstacles[:, :2]
+        grad_dist_to_obs = D_center2center - np.sqrt(np.square(d_cur[:, 0]) + np.square(d_cur[:, 1]))
+        grad_dist_to_obs[grad_dist_to_obs > 0] = 0
+        grad_dist_to_obs[D > self.obstacle_radius_big] = 0
 
-        if goal_xy is not None:  # as we get closer to the goal, obstacles are less important
-            D = D / norm(next_xy - goal_xy[:2], axis=1)
+        # min distance from each point to any obstacle
+        D = np.min(D, axis=1)
+        grad_dist_to_obs = np.min(grad_dist_to_obs, axis=1)
 
+        cost_too_close = 1 - np.exp(D)
+        cost_too_close[D > self.obstacle_radius] = 0
 
-        D = np.clip(D, 1e-3, 1000)
-        cost_matrix = 0.2 / D
-        cost_matrix[cost_matrix < 0.2/self.obstacle_radius] = 0
+        cost_grad = 1 - np.exp(-np.abs(grad_dist_to_obs))
+
+        cost_matrix = (cost_too_close + cost_grad) * self.W["obstacle"] # * w_dist_to_goal
         return cost_matrix
 
     def _cost_task(self, cur_xyt, vel_twist, dt, goal_xy) -> Tuple[float]:
@@ -194,11 +207,12 @@ class LocalPlanner:
         min_cost_idx = np.argmin(cost_batch)
         twist_star_vw = np.array([speed_table[0].flatten()[min_cost_idx], speed_table[1].flatten()[min_cost_idx]])
 
+        angle_range = [xyt[2] + ang_speed_range[0] * dt, xyt[2] + ang_speed_range[-1] * dt]
+        radius_range = [lin_speed_range[0] * dt, lin_speed_range[-1] * dt]
         if self.enable_vis and len(illegible_v_stars) > 0 and self.enable_legibility:
-            angle_range = [xyt[2] + ang_speed_range[0] * dt, xyt[2] + ang_speed_range[-1] * dt]
-            radius_range = [lin_speed_range[0] * dt, lin_speed_range[-1] * dt]
             # Visualizer().draw_heatmap(xyt[:2], cost_batch.reshape(len(lin_speed_range), len(lin_speed_range)), radius_range, angle_range)
             Visualizer().draw_heatmap(xyt[:2], cost_legib_batch.reshape(len(ang_speed_range), len(lin_speed_range)), radius_range, angle_range)
+        Visualizer().draw_heatmap(xyt[:2], costs_batch[1].reshape(len(ang_speed_range), len(lin_speed_range)), radius_range, angle_range, title="cost_obstacle")
 
         # if len(illegible_v_stars) > 0 and self.enable_legibility:
         #     print("legib cost: ", cost_legib_batch[min_cost_idx])

@@ -46,9 +46,9 @@ Visualizer().reset()
 #             field[j, i, 0] = f[0]
 #             field[j, i, 1] = -f[1]
 
-local_planner = LocalPlanner(goals, obstacles, goal_idx, verbose=False, enable_legibility=True)
+local_planner = LocalPlanner(goals, obstacles, goal_idx, verbose=True, enable_legibility=False)
 local_planner.legibility_cost_type = "euclidean" # "cosine"
-plan_legibot = local_planner.full_plan(np.array(x0), dt=1)
+plan_legibot = local_planner.full_plan(np.array(x0), dt=0.5)
 
 fig, axs = plt.subplots(1, 1, figsize=(6, 4))
 
