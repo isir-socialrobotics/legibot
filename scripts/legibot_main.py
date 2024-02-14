@@ -13,9 +13,17 @@ def main():
     robot_x0 = (-1.0, 3.0, -1.57)
 
     # Scenario 1
-    observers = [(1.5, -2.5, 170),
-                 (-1.5, -5.5, 80),
+    observers = [(0.8, -5.8, 120),
+                 (-1., -6., 80),
                  ]
+
+    empty_tables = [
+        (0, -3, 0.2),
+        # (-2.5, -5.5, 0),
+    ]
+    static_map = StaticMap()
+    static_map.tables = static_map.tables + empty_tables
+    StaticMap().update()
 
     # Scenario 2
     # observers = [(2.5, -2.5, 170),
@@ -84,7 +92,11 @@ def main():
     static_map.persons = [obs[:2] for obs in observers]
     static_map.update()
 
-    planner = MainPlanner([robot_goal] + other_goals, goal_idx=0, robot_xyt0=robot_x0, enable_legibilit=False)
+    legibile = True
+    planner = MainPlanner([robot_goal] + other_goals, goal_idx=0, robot_xyt0=robot_x0, enable_legibility=legibile)
+
+    exp_name = f"exp_{'legible' * legibile}_{'illegible' * (not legibile)}_{time.strftime('%Y-%m-%d_%H-%M-%S')}"
+    rospy.set_param("/legibot/experiment_name", exp_name)
 
     planner.generate_trajectory()
     planner.exec_loop()

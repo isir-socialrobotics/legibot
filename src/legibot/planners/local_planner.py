@@ -30,7 +30,7 @@ class LocalPlanner:
         self.robot_radius = 0.3  # pepper?
         self.goal_radius = 0.5  # m
         self.obstacle_radius = kwargs.get("obstacle_radius", 0.5)  # m (robot should keep this distance from obstacles)
-        self.obstacle_radius_big = 2.0  # used to slow down the robot when it gets close to obstacles
+        self.obstacle_radius_big = 3.0  # used to predict obstacles in more distant future, and adapt its plan
 
         self.optimal_speed_mps = kwargs.get("optimal_speed", 1.0)  # m/s (robot should keep this speed)
 
@@ -76,10 +76,11 @@ class LocalPlanner:
 
         cost_too_close = 1 - np.exp(D)
         cost_too_close[D > self.obstacle_radius] = 0
+        cost_too_close[D < self.obstacle_radius / 5] = 10
 
         cost_grad = 1 - np.exp(-np.abs(grad_dist_to_obs))
 
-        cost_matrix = (cost_too_close + cost_grad) * self.W["obstacle"] # * w_dist_to_goal
+        cost_matrix = (cost_too_close * 2 + cost_grad) * self.W["obstacle"] # * w_dist_to_goal
         return cost_matrix
 
     def _cost_task(self, cur_xyt, vel_twist, dt, goal_xy) -> Tuple[float]:
@@ -147,7 +148,7 @@ class LocalPlanner:
 
         if self.legibility_cost_type.lower() == "cosine":
             costs = dxy @ dxy_other_goals.T / (norm(dxy, axis=1).reshape(-1, 1) * norm(dxy_other_goals, axis=1).reshape(1, -1) + 1e-6)
-            costs = np.clip(costs - 0.75, 0, 1)
+            costs = np.clip(costs, 0, 1)
 
         elif self.legibility_cost_type.lower() == "euclidean":
             next_xy_other_goals = cur_xyt[:2] + dxy_other_goals
@@ -175,7 +176,7 @@ class LocalPlanner:
         return (legib_costs_weighted * self.W["legibility"] + fov_cost.reshape(-1, 1) * self.W["fov"]).reshape(-1)
 
     def __search_optimal_velocity__(self, xyt, dt, goal, illegible_v_stars=[]):
-        ang_speed_range = np.linspace(-np.pi, np.pi, 36)  # 10 deg
+        ang_speed_range = np.linspace(-np.pi, np.pi, 72)  # 10 deg
         lin_speed_range = np.linspace(0.05, self.optimal_speed_mps, 10)
         speed_table = np.meshgrid(lin_speed_range, ang_speed_range)
 
@@ -212,7 +213,7 @@ class LocalPlanner:
         if self.enable_vis and len(illegible_v_stars) > 0 and self.enable_legibility:
             # Visualizer().draw_heatmap(xyt[:2], cost_batch.reshape(len(lin_speed_range), len(lin_speed_range)), radius_range, angle_range)
             Visualizer().draw_heatmap(xyt[:2], cost_legib_batch.reshape(len(ang_speed_range), len(lin_speed_range)), radius_range, angle_range)
-        Visualizer().draw_heatmap(xyt[:2], costs_batch[1].reshape(len(ang_speed_range), len(lin_speed_range)), radius_range, angle_range, title="cost_obstacle")
+        # Visualizer().draw_heatmap(xyt[:2], costs_batch[1].reshape(len(ang_speed_range), len(lin_speed_range)), radius_range, angle_range, title="cost_obstacle")
 
         # if len(illegible_v_stars) > 0 and self.enable_legibility:
         #     print("legib cost: ", cost_legib_batch[min_cost_idx])
@@ -259,7 +260,7 @@ class LocalPlanner:
 
         return sub_plan[1], False
 
-    def full_plan(self, xyt0, dt, H=100):
+    def full_plan(self, xyt0, dt, H=200):
         assert len(xyt0) == 3, "local_planner: x0 must be a 3D vector: [x, y, theta(rad)]"
         xyt = xyt0
         plan = [xyt0]

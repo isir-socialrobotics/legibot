@@ -98,19 +98,22 @@ if __name__ == "__main__":
 
         rospy.init_node('record_observer')
         datatime_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        exp_name = rospy.get_param("/legibot/experiment_name", f'observer-{datatime_str}')
+        print("Recorder: Experiment name:", exp_name)
         try:
             target_dir = os.path.join(os.path.expanduser("~"), "Videos", "legibot")
             if not os.path.exists(target_dir):
                 os.makedirs(target_dir)
-            recorder = ROSVideoRecorder(args, '/observer/camera', os.path.join(target_dir, f'observer-{datatime_str}.avi'))
+            recorder = ROSVideoRecorder(args, '/observer/camera', os.path.join(target_dir, exp_name+'.avi'))
 
             recorder.start()
+            cv2.namedWindow('observer', cv2.WINDOW_NORMAL)
             while True:
                 if recorder.last_timestamp >0 and rospy.get_time() - recorder.last_timestamp > 3:
                     print("Recorder: No robot commande detected for 3 seconds. Stopping recording...")
                     break
                 if recorder.last_image is not None:
-                    cv2.imshow('image', recorder.last_image)
+                    cv2.imshow('observer', recorder.last_image)
                 k = cv2.waitKey(10)
                 if k == 27:  # if ESC is pressed, exit the program
                     raise KeyboardInterrupt

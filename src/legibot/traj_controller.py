@@ -107,7 +107,7 @@ class TrajectoryController:
 
         # check for rotation
         # print("robot speed", self.odom_history.get_instant_speed())
-        if abs(math.degrees(angle_to_unitary(angle_to_subgoal - self.robot_orien))) > 10:
+        if abs(math.degrees(angle_to_unitary(angle_to_subgoal - self.robot_orien))) > 15:
             command.linear.x = 0.25
             command.angular.z = 0.8 * sign(angle_to_unitary(angle_to_subgoal - self.robot_orien))
 
