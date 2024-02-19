@@ -39,8 +39,8 @@ class LocalPlanner:
                   "obstacle": kwargs.get("w_obstacle", 0.8),
                   "speed": kwargs.get("w_speed", 0.6),
                   "smoothness": kwargs.get("w_smoothness", 0.2),
-                  "legibility": kwargs.get("w_legibility", 1.5),
-                  "fov": kwargs.get("w_fov", 2), # applies only when legibility is enabled
+                  "legibility": kwargs.get("w_legibility", 1.),
+                  "fov": kwargs.get("w_fov", 1), # applies only when legibility is enabled
                   }
         self.n_steps = kwargs.get("n_steps", 3)
 
@@ -82,30 +82,7 @@ class LocalPlanner:
         cost_matrix = (cost_too_close * 2 + cost_grad) * self.W["obstacle"] # * w_dist_to_goal
         return cost_matrix
 
-    def _cost_task(self, cur_xyt, vel_twist, dt, goal_xy) -> Tuple[float]:
-        goal_vec = goal_xy - cur_xyt[:2]
-        # next_xy = cur_xyt + displacement_vec * dt
-
-        cur_theta = cur_xyt[2]
-        new_theta = cur_theta + vel_twist[1] * dt
-        next_xy = cur_xyt[:2] + np.array([np.cos(new_theta), np.sin(new_theta)]) * vel_twist[0] * dt
-
-        displacement_vec = next_xy - cur_xyt[:2]
-
-        # cost of deviating from goal direction
-        cost_goal = 1 - cos_2_vecs(displacement_vec, goal_vec)
-        cost_goal += norm(goal_xy - next_xy) / norm(goal_xy - cur_xyt[:2])  # this is not a good idea
-
-        cost_obs = self._cost_obstacle(cur_xyt, next_xy, goal_xy)
-
-        cost_turn = np.abs(vel_twist[1]) ** 2
-
-        # cost of deviating from optimal speed
-        cost_speed = np.abs(norm(displacement_vec) - self.optimal_speed_mps) # ** 2
-
-        return cost_goal * self.W["goal"], cost_obs * self.W["obstacle"], cost_speed * self.W["speed"], cost_turn * self.W["smoothness"]
-
-    def _cost_task_batch(self, cur_xyt, vel_twist_batch, dt, goal_xy):
+    def _cost_task(self, cur_xyt, vel_twist_batch, dt, goal_xy):
         goal_vec = goal_xy[:2] - cur_xyt[:2]
 
         cur_theta = cur_xyt[2]
@@ -128,7 +105,7 @@ class LocalPlanner:
         return (cost_goal_batch * self.W["goal"], cost_obs_batch * self.W["obstacle"],
                 cost_speed_batch * self.W["speed"], cost_turn_batch * self.W["smoothness"])
 
-    def _cost_legibility(self, cur_xyt, vel_twist_batch, dt, goal_xyt, dxy_other_goals):
+    def _cost_legibility(self, cur_xyt, vel_twist_batch, dt, goal_xyt, dxy_all_goals):
         vel_twist_batch = np.reshape(vel_twist_batch, (-1, 2))
         new_theta_batch = cur_xyt[2] + vel_twist_batch[:, 1] * dt
         dxy = (np.array([np.cos(new_theta_batch), np.sin(new_theta_batch)]) * vel_twist_batch[:, 0]).T * dt
@@ -146,11 +123,15 @@ class LocalPlanner:
         # print(f"max (ratio_goal_dist): {max(ratio_goal_dist):.2f}")
 
         if self.legibility_cost_type.lower() == "cosine":
-            costs = dxy @ dxy_other_goals.T / (norm(dxy, axis=1).reshape(-1, 1) * norm(dxy_other_goals, axis=1).reshape(1, -1) + 1e-6)
-            costs = np.clip(costs, 0, 1)
+            dxy_actual_goal = dxy_all_goals[self.goal_idx]
+            dxy_other_goals = np.array([dxy_all_goals[i] for i in range(len(dxy_all_goals)) if i != self.goal_idx])
+            deviate_actual_goal = (dxy @ dxy_actual_goal / (norm(dxy, axis=1) * norm(dxy_actual_goal) + 1e-9)).reshape(-1, 1)
+            deviate_other_goals = dxy @ dxy_other_goals.T / (norm(dxy, axis=1).reshape(-1, 1) * norm(dxy_other_goals, axis=1).reshape(1, -1) + 1e-9)
+            costs = np.pi/2 - np.clip(np.arccos(deviate_other_goals), 0, np.pi/2) \
+                    + np.clip(np.arccos(deviate_actual_goal), 0, np.pi/2) / (len(dxy_all_goals))
 
         elif self.legibility_cost_type.lower() == "euclidean":
-            next_xy_other_goals = cur_xyt[:2] + dxy_other_goals
+            next_xy_other_goals = cur_xyt[:2] + dxy_all_goals
             D = pairwise_distances(next_xy_batch, next_xy_other_goals)
             costs = 1 / (D + 1e-9)
         else:
@@ -170,11 +151,11 @@ class LocalPlanner:
         # print(f"min (fov_cost): {min(fov_cost):.2f} max (fov_cost): {max(fov_cost):.2f}")
 
         # apply weights for each non-main goal
-        legib_costs_weighted = costs @ np.array(ratio_goal_dist).reshape(-1, 1) * observability.reshape(-1, 1) / len(dxy_other_goals)
+        legib_costs_weighted = costs @ np.array(ratio_goal_dist).reshape(-1, 1) * observability.reshape(-1, 1) / len(dxy_all_goals)
 
         return (legib_costs_weighted * self.W["legibility"] + fov_cost.reshape(-1, 1) * self.W["fov"]).reshape(-1)
 
-    def __search_optimal_velocity__(self, xyt, dt, goal, illegible_v_stars=[]):
+    def __search_optimal_velocity__(self, xyt, dt, goal, suboptimal_v_stars=[]):
         ang_speed_range = np.linspace(-np.pi, np.pi, 72)  # 10 deg
         lin_speed_range = np.linspace(0.05, self.optimal_speed_mps, 10)
         speed_table = np.meshgrid(lin_speed_range, ang_speed_range)
@@ -199,10 +180,10 @@ class LocalPlanner:
         #     calculate_cost((i, j))
 
         ## Batch version
-        costs_batch = self._cost_task_batch(xyt, np.stack(speed_table, axis=-1).reshape(-1, 2), dt, goal)
+        costs_batch = self._cost_task(xyt, np.stack(speed_table, axis=-1).reshape(-1, 2), dt, goal)
         cost_batch = np.sum(costs_batch, axis=0)
-        if len(illegible_v_stars) > 0 and self.enable_legibility:
-            cost_legib_batch = self._cost_legibility(xyt, np.stack(speed_table, axis=-1).reshape(-1, 2), dt, goal, illegible_v_stars)
+        if len(suboptimal_v_stars) > 0 and self.enable_legibility:
+            cost_legib_batch = self._cost_legibility(xyt, np.stack(speed_table, axis=-1).reshape(-1, 2), dt, goal, suboptimal_v_stars)
             cost_batch += cost_legib_batch
         min_cost_idx = np.argmin(cost_batch)
         twist_star_vw = np.array([speed_table[0].flatten()[min_cost_idx], speed_table[1].flatten()[min_cost_idx]])
@@ -210,7 +191,7 @@ class LocalPlanner:
         angle_range = [xyt[2] + ang_speed_range[0] * dt, xyt[2] + ang_speed_range[-1] * dt]
         radius_range = [lin_speed_range[0] * dt, lin_speed_range[-1] * dt]
         if self.enable_vis:
-            if len(illegible_v_stars) > 0 and self.enable_legibility:
+            if len(suboptimal_v_stars) > 0 and self.enable_legibility:
                 # Visualizer().draw_heatmap(xyt[:2], cost_legib_batch.reshape(len(ang_speed_range), len(lin_speed_range)), radius_range, angle_range)
                 pass
             # Visualizer().draw_heatmap(xyt[:2], costs_batch[1].reshape(len(ang_speed_range), len(lin_speed_range)), radius_range, angle_range, title="cost_obstacle")
@@ -226,11 +207,11 @@ class LocalPlanner:
         if norm(xyt[:2] - self.all_goals_xyt[self.goal_idx][:2]) < (self.goal_radius + self.robot_radius + dt * self.optimal_speed_mps):
             return [self.all_goals_xyt[self.goal_idx][0], self.all_goals_xyt[self.goal_idx][1], xyt[2]], True
 
-        optimal_plan_other_goals = []
+        suboptimal_plan_all_goals = []
         other_goals = [self.all_goals_xyt[i] for i in range(len(self.all_goals_xyt)) if i != self.goal_idx]
         if self.enable_legibility:
             # find optimal local-plan for each potential goal
-            for g_idx, goal in enumerate(other_goals):
+            for g_idx, goal in enumerate(self.all_goals_xyt):
                 last_xyt = xyt
                 optimal_plan_goal_i = []
                 for step in range(self.n_steps):
@@ -243,17 +224,17 @@ class LocalPlanner:
 
                     last_xyt = np.array([new_xy[0], new_xy[1], new_theta])
                     optimal_plan_goal_i.append(last_xyt[:2] - xyt[:2])
-                optimal_plan_other_goals.append(optimal_plan_goal_i)
+                suboptimal_plan_all_goals.append(optimal_plan_goal_i)
 
-        if len(optimal_plan_other_goals) > 0:
-            optimal_plan_other_goals = np.array(optimal_plan_other_goals)
+        if len(suboptimal_plan_all_goals) > 0:
+            suboptimal_plan_all_goals = np.array(suboptimal_plan_all_goals)
         else:
-            optimal_plan_other_goals = np.empty((len(other_goals), self.n_steps, 0))
+            suboptimal_plan_all_goals = np.empty((len(other_goals), self.n_steps, 0))
 
         sub_plan = [xyt]
         for step in range(self.n_steps):
             vw_star, cost_map = self.__search_optimal_velocity__(xyt, dt, self.all_goals_xyt[self.goal_idx],
-                                                                 optimal_plan_other_goals[:, step])
+                                                                 suboptimal_plan_all_goals[:, step])
             cur_theta = xyt[2]
             new_theta = cur_theta + vw_star[1] * dt
             next_xy = xyt[:2] + np.array([np.cos(new_theta), np.sin(new_theta)]) * vw_star[0] * dt
