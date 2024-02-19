@@ -53,7 +53,6 @@ class LocalPlanner:
         D_center2center = np.sqrt(np.square(Dx) + np.square(Dy))
         D = D_center2center - self.obstacles[:, 2] - self.robot_radius
 
-
         # Handle GNRON problem (Goal Nonreachable with Obstacles Nearby)
         if goal_xy is not None:
             w_dist_to_goal = 1 / norm(next_xy - goal_xy[:2], axis=1).reshape(-1, 1)
@@ -118,7 +117,7 @@ class LocalPlanner:
         displacement_vec_batch = next_xy_batch - cur_xyt[:2]
 
         # cost of deviating from goal direction
-        cost_goal_batch = 1 - displacement_vec_batch @ goal_vec / (norm(displacement_vec_batch, axis=1) * norm(goal_vec) + 1e-6)
+        cost_goal_batch = 1 - displacement_vec_batch @ goal_vec / (norm(displacement_vec_batch, axis=1) * norm(goal_vec) + 1e-9)
 
         cost_obs_batch = self._cost_obstacle(cur_xyt, next_xy_batch, goal_xy)
         cost_turn_batch = np.abs(vel_twist_batch[:, 1])
@@ -153,14 +152,14 @@ class LocalPlanner:
         elif self.legibility_cost_type.lower() == "euclidean":
             next_xy_other_goals = cur_xyt[:2] + dxy_other_goals
             D = pairwise_distances(next_xy_batch, next_xy_other_goals)
-            costs = 1 / (D + 1e-6)
+            costs = 1 / (D + 1e-9)
         else:
             raise ValueError(f"Unknown legibility cost type: {self.legibility_cost_type}")
 
         # cost of being out of the main observer's field of view
         observer_unit_vec = np.array([np.cos(goal_xyt[2]), np.sin(goal_xyt[2])])
         dxy_goal_normal_for_next_xy_batch = (next_xy_batch - goal_xyt[:2]) / (
-                    norm(next_xy_batch - goal_xyt[:2], axis=1).reshape(-1, 1) + 1e-6)
+                    norm(next_xy_batch - goal_xyt[:2], axis=1).reshape(-1, 1) + 1e-9)
         deviation_from_observer_center_of_view = np.abs(
             np.arccos(dxy_goal_normal_for_next_xy_batch @ observer_unit_vec))  # radians
         fov_cost = 1/(1+np.exp(-(deviation_from_observer_center_of_view / (self.observer_fov/2) - 1)))
@@ -210,15 +209,18 @@ class LocalPlanner:
 
         angle_range = [xyt[2] + ang_speed_range[0] * dt, xyt[2] + ang_speed_range[-1] * dt]
         radius_range = [lin_speed_range[0] * dt, lin_speed_range[-1] * dt]
-        if self.enable_vis and len(illegible_v_stars) > 0 and self.enable_legibility:
-            # Visualizer().draw_heatmap(xyt[:2], cost_batch.reshape(len(lin_speed_range), len(lin_speed_range)), radius_range, angle_range)
-            Visualizer().draw_heatmap(xyt[:2], cost_legib_batch.reshape(len(ang_speed_range), len(lin_speed_range)), radius_range, angle_range)
-        # Visualizer().draw_heatmap(xyt[:2], costs_batch[1].reshape(len(ang_speed_range), len(lin_speed_range)), radius_range, angle_range, title="cost_obstacle")
+        if self.enable_vis:
+            if len(illegible_v_stars) > 0 and self.enable_legibility:
+                # Visualizer().draw_heatmap(xyt[:2], cost_legib_batch.reshape(len(ang_speed_range), len(lin_speed_range)), radius_range, angle_range)
+                pass
+            # Visualizer().draw_heatmap(xyt[:2], costs_batch[1].reshape(len(ang_speed_range), len(lin_speed_range)), radius_range, angle_range, title="cost_obstacle")
+            Visualizer().draw_heatmap(xyt[:2], cost_batch.reshape(len(ang_speed_range), len(lin_speed_range)), radius_range, angle_range, title="overall_cost")
+
 
         # if len(illegible_v_stars) > 0 and self.enable_legibility:
         #     print("legib cost: ", cost_legib_batch[min_cost_idx])
 
-        return twist_star_vw, 0
+        return twist_star_vw, cost_batch
 
     def step(self, xyt, dt) -> (np.ndarray, np.ndarray, bool):
         if norm(xyt[:2] - self.all_goals_xyt[self.goal_idx][:2]) < (self.goal_radius + self.robot_radius + dt * self.optimal_speed_mps):

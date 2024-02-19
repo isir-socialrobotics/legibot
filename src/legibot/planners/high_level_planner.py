@@ -28,7 +28,7 @@ class MainPlanner:
         self._controller = TrajectoryController([])
         self.static_map = StaticMap()
         self._local_planner = LocalPlanner(np.array(self.goals),
-                                           np.array(self.static_map.obstacles), goal_idx=self.goal_idx, verbose=True, **kwargs)
+                                           np.array(self.static_map.obstacles), goal_idx=self.goal_idx, **kwargs)
         # self.goal_publisher = rospy.Publisher('/pepper/goals', PoseArray, queue_size=10)
         self._odom_sub = rospy.Subscriber('/odom', Odometry, self.odom_callback)
 

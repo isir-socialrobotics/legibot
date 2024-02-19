@@ -45,7 +45,7 @@ def main():
 
     robot_goal = (tables_xy[robot_goal_idx][0], tables_xy[robot_goal_idx][1], math.radians(observers[robot_goal_idx][2]))
     other_goals = [(tables_xy[i][0], tables_xy[i][1], math.radians(observers[i][2]))
-                     for i in range(len(observers)) if i != robot_goal_idx]
+                   for i in range(len(observers)) if i != robot_goal_idx]
 
     # read goal value
     # goal = rospy.get_param("/robot_controller/goal", robot_goal)
@@ -79,13 +79,15 @@ def main():
                               f"y:={observers[i][1]}", f"yaw:={math.radians(observers[i][2]) + math.pi/2}"])
         else:
             gazebo_spawn_static_model(f"person__{i}", person_standing_sdf,
-                                        f"{observers[i][0]}, {observers[i][1]}, 0.16, 0, 0, {math.radians(observers[i][2])+ math.pi/2}", "world")
+                                      f"{observers[i][0]}, {observers[i][1]}, 0.16, 0, 0, {math.radians(observers[i][2])+ math.pi/2}", "world")
         time.sleep(0.2)
 
     # restart observer node
+    record = False
     subprocess.Popen(["rosnode", "kill", "/record_observer"])
-    time.sleep(0.2)
-    subprocess.Popen(["rosrun", "legibot", "record_observer.py"])
+    if record:
+        time.sleep(0.2)
+        subprocess.Popen(["rosrun", "legibot", "record_observer.py"])
 
     static_map = StaticMap()
     static_map.tables = tables_xy
@@ -93,7 +95,8 @@ def main():
     static_map.update()
 
     legibile = True
-    planner = MainPlanner([robot_goal] + other_goals, goal_idx=0, robot_xyt0=robot_x0, enable_legibility=legibile)
+    verbose = False
+    planner = MainPlanner([robot_goal] + other_goals, goal_idx=0, robot_xyt0=robot_x0, enable_legibility=legibile, verbose=verbose)
 
     exp_name = f"exp_{'legible' * legibile}_{'illegible' * (not legibile)}_{time.strftime('%Y-%m-%d_%H-%M-%S')}"
     rospy.set_param("/legibot/experiment_name", exp_name)
