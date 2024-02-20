@@ -10,11 +10,12 @@ from legibot.utils.gazebo_utils import gazebo_delete_model, gazebo_spawn_static_
 
 
 def main():
-    robot_x0 = (-1.0, 3.0, -1.57)
+    robot_x0 = (-0., 3.5, -1.57)
 
     # Scenario 1
-    observers = [(0.8, -5.8, 120),
-                 (-1., -6., 80),
+    observers = [(0.8, -6, 110),
+                 (-0.8, -6., 70),
+                 # (-3, -5, 30),
                  ]
 
     empty_tables = [
@@ -95,7 +96,7 @@ def main():
     static_map.update()
 
     legibile = True
-    verbose = False
+    verbose = True
     planner = MainPlanner([robot_goal] + other_goals, goal_idx=0, robot_xyt0=robot_x0, enable_legibility=legibile, verbose=verbose)
 
     exp_name = f"exp_{'legible' * legibile}_{'illegible' * (not legibile)}_{time.strftime('%Y-%m-%d_%H-%M-%S')}"

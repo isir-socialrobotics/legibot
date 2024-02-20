@@ -36,7 +36,7 @@ class LocalPlanner:
 
         # Planner parameters
         self.W = {"goal": kwargs.get("w_goal", 0.9),
-                  "obstacle": kwargs.get("w_obstacle", 0.8),
+                  "obstacle": kwargs.get("w_obstacle", 0.4),
                   "speed": kwargs.get("w_speed", 0.6),
                   "smoothness": kwargs.get("w_smoothness", 0.2),
                   "legibility": kwargs.get("w_legibility", 1.),
@@ -240,6 +240,8 @@ class LocalPlanner:
             next_xy = xyt[:2] + np.array([np.cos(new_theta), np.sin(new_theta)]) * vw_star[0] * dt
 
             sub_plan.append((next_xy[0], next_xy[1], new_theta))
+            # if step == 0:
+            #     print("vw_star:", vw_star)
 
         return sub_plan[1], False
 
@@ -251,6 +253,7 @@ class LocalPlanner:
 
         now = datetime.now()
         for t in np.arange(0, H * dt, dt):
+            # print("step: ", t, end=" ")
             new_xyt, reached = self.step(xyt, dt)
             plan.append(new_xyt)
 
