@@ -6,14 +6,18 @@ from legibot.utils.singleton import Singleton
 
 
 class Visualizer(metaclass=Singleton):
-    def __init__(self):
-        self.mode = "opencv"  # "matplotlib"
+    def __init__(self, mode="opencv"):
+        self.mode = mode  # "opencv" or "matplotlib"
         self.im_size = (1000, 1000)
         self.world_x_range = (-10, 10)
         self.world_y_range = (-10, 10)
 
-        self.img = None
-        self.reset()
+        if self.mode == "opencv":
+            self.img = None
+            self.reset()
+
+        else:  # matplotlib
+            self.fig, self.ax = None, None
 
     def transform(self, x, y):
         t_xy = np.dot(self.transform_matrix, np.array([x, y, 1]))
@@ -26,15 +30,26 @@ class Visualizer(metaclass=Singleton):
             if k == 27: # if ESC is pressed, exit the program
                 print("Exiting...")
                 exit()
+        else:
+            plt.show()
 
     def save(self, filename):
         if self.mode == "opencv":
             cv2.imwrite(filename, cv2.flip(self.img, 0))
+        else:
+            plt.legend()
+            plt.savefig(filename)
 
     def reset(self):
         if self.mode == "opencv":
             self.img = np.ones((self.im_size[0], self.im_size[1], 3), dtype=np.uint8) * 255
-            # transform matrix
+        else:
+            self.fig, self.ax = plt.subplots(1, 1, figsize=(12, 8))
+            self.ax.axis('equal')
+            self.ax.set_xlim(self.world_x_range)
+            self.ax.set_ylim(self.world_y_range)
+
+        # transform matrix
         self.scale = self.img.shape[0] / (self.world_x_range[1] - self.world_x_range[0])
         offset_x = -self.world_x_range[0] * self.scale
         offset_y = -self.world_y_range[0] * self.scale
@@ -49,6 +64,11 @@ class Visualizer(metaclass=Singleton):
                 cv2.circle(self.img, (int(obs_xy[0]), int(obs_xy[1])),
                                         int(obstacle[2]*self.scale),
                            (0, 0, 0), -1)
+        else:
+            for obstacle in obstacles:
+                circle = plt.Circle((obstacle[0], obstacle[1]), obstacle[2], label='Obstacle' if 'Obstacle' not in self.ax.get_legend_handles_labels()[1] else "",
+                                    color='k', hatch='///', fill=False)
+                self.ax.add_artist(circle)
 
     def draw_goals(self, goals, color=(0, 255, 0)):
         if self.mode == "opencv":
@@ -56,6 +76,11 @@ class Visualizer(metaclass=Singleton):
                 g_xy = self.transform(goal[0], goal[1])
                 cv2.drawMarker(self.img, (int(g_xy[0]), int(g_xy[1])),
                                color, cv2.MARKER_CROSS, 20, 5)
+        else:
+            for ii, goal in enumerate(goals):
+                self.ax.plot(goal[0], goal[1], '+g', markersize=10,
+                            label='Goal' if 'Goal' not in self.ax.get_legend_handles_labels()[1] else "")
+                self.ax.text(goal[0]+0.5, goal[1], f"g{ii}", fontsize=12)
 
     def draw_path(self, path):
         if self.mode == "opencv":
@@ -64,6 +89,8 @@ class Visualizer(metaclass=Singleton):
                 p_i1_xy = self.transform(path[i+1][0], path[i+1][1])
                 cv2.line(self.img, (int(p_i_xy[0]), int(p_i_xy[1])), (int(p_i1_xy[0]), int(p_i1_xy[1])),
                                     (255, 0, 0), 5)
+        else:
+            self.ax.plot([x[0] for x in path], [x[1] for x in path], '-or', label='Path')
 
     def add_arrow(self, xy, uv, color=(0, 100, 255)):
         if self.mode == "opencv":
@@ -72,6 +99,9 @@ class Visualizer(metaclass=Singleton):
             cv2.arrowedLine(self.img, (int(xy_trans[0]), int(xy_trans[1])),
                                       (int(uv_trans[0]), int(uv_trans[1])),
                                       color, 2)
+        else:
+            self.ax.arrow(xy[0], xy[1], uv[0] - xy[0], uv[1] - xy[1],
+                            head_width=0.2, head_length=0.3, fc='k', ec=(color[2]/255, color[1]/255, color[0]/255))
 
     def draw_heatmap(self, xy_center, polar_cost_map, radius_range, angle_range, title="Heatmap"):
         new_img = self.img  # np.ones((self.im_size[0], self.im_size[1], 3), dtype=np.uint8) * 255

@@ -16,13 +16,13 @@ class LocalPlanner:
         self.all_goals_xyt = goals
         self.goal_idx = goal_idx
         self.obstacles = obstacles
-        self.enable_vis = kwargs.get("verbose", False)
+        self.verbose = kwargs.get("verbose", 0)
         self.observer_fov = kwargs.get("observer_fov", math.radians(120))  # radians
 
         self.enable_legibility = kwargs.get("enable_legibility", True)
         self.legibility_cost_type = kwargs.get("legibility_cost_type", "cosine")  # ["cosine", "euclidean"]
 
-        if self.enable_vis:
+        if self.verbose:
             Visualizer().draw_obstacles(obstacles)
             Visualizer().draw_goals(goals)
             Visualizer().draw_goals(StaticMap().observers, color=(0, 255, 240))
@@ -38,11 +38,11 @@ class LocalPlanner:
         self.W = {"goal": kwargs.get("w_goal", 0.9),
                   "obstacle": kwargs.get("w_obstacle", 0.4),
                   "speed": kwargs.get("w_speed", 0.6),
-                  "smoothness": kwargs.get("w_smoothness", 0.2),
+                  "smoothness": kwargs.get("w_smoothness", 0.1),
                   "legibility": kwargs.get("w_legibility", 1.),
                   "fov": kwargs.get("w_fov", 1), # applies only when legibility is enabled
                   }
-        self.n_steps = kwargs.get("n_steps", 3)
+        self.n_steps = kwargs.get("n_steps", 4)
 
         self.out_dir = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../../out"))
 
@@ -190,7 +190,7 @@ class LocalPlanner:
 
         angle_range = [xyt[2] + ang_speed_range[0] * dt, xyt[2] + ang_speed_range[-1] * dt]
         radius_range = [lin_speed_range[0] * dt, lin_speed_range[-1] * dt]
-        if self.enable_vis:
+        if self.verbose > 1:
             if len(suboptimal_v_stars) > 0 and self.enable_legibility:
                 # Visualizer().draw_heatmap(xyt[:2], cost_legib_batch.reshape(len(ang_speed_range), len(lin_speed_range)), radius_range, angle_range)
                 pass
@@ -218,9 +218,10 @@ class LocalPlanner:
                     vw_star_other, _ = self.__search_optimal_velocity__(last_xyt, dt, goal)
                     new_theta = last_xyt[2] + vw_star_other[1] * dt
                     new_xy = last_xyt[:2] + np.array([np.cos(new_theta), np.sin(new_theta)]) * vw_star_other[0] * dt
-                    if self.enable_vis:
-                        Visualizer().add_arrow(last_xyt[:2], new_xy, color=(0, 0, 255))
-                        Visualizer().show(20)
+                    local_path_color = (0, 155, 0) if g_idx == self.goal_idx else (0, 0, 255)
+                    if self.verbose:
+                        Visualizer().add_arrow(last_xyt[:2], new_xy, color=local_path_color)
+                        # Visualizer().show(20)
 
                     last_xyt = np.array([new_xy[0], new_xy[1], new_theta])
                     optimal_plan_goal_i.append(last_xyt[:2] - xyt[:2])
@@ -257,9 +258,10 @@ class LocalPlanner:
             new_xyt, reached = self.step(xyt, dt)
             plan.append(new_xyt)
 
-            if self.enable_vis:
+            if self.verbose:
                 Visualizer().add_arrow(xyt, new_xyt, color=(255, 0, 0))
                 Visualizer().save(os.path.join(self.out_dir, f"{now.strftime('%Y%m%d-%H%M%S')}-{round(t, 4):.4f}.png"))
+                print(f"fig saved to ", {os.path.join(self.out_dir, f'{now.strftime("%Y%m%d-%H%M%S")}-{round(t, 4):.4f}.svg')})
 
             xyt = new_xyt
             if reached:
@@ -267,7 +269,7 @@ class LocalPlanner:
             # print(f"time passed: {datetime.now() - now}")
 
         # plan.append([self.all_goals[self.goal_idx][0], self.all_goals[self.goal_idx][1], xyt[2]])
-        if self.enable_vis:
+        if self.verbose:
             Visualizer().draw_path(plan)
             Visualizer().show(delay=100)
         return plan
