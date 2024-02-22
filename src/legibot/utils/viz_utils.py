@@ -44,10 +44,12 @@ class Visualizer(metaclass=Singleton):
         if self.mode == "opencv":
             self.img = np.ones((self.im_size[0], self.im_size[1], 3), dtype=np.uint8) * 255
         else:
-            self.fig, self.ax = plt.subplots(1, 1, figsize=(12, 8))
+            self.fig, self.ax = plt.subplots(1, 1, figsize=(10, 7))
             self.ax.axis('equal')
             self.ax.set_xlim(self.world_x_range)
             self.ax.set_ylim(self.world_y_range)
+            self.ax.set_xticklabels([])
+            self.ax.set_yticklabels([])
 
         # transform matrix
         self.scale = self.img.shape[0] / (self.world_x_range[1] - self.world_x_range[0])
@@ -70,6 +72,14 @@ class Visualizer(metaclass=Singleton):
                                     color='k', hatch='///', fill=False)
                 self.ax.add_artist(circle)
 
+    def draw_initial_point(self, x0):
+        if self.mode == "opencv":
+            x0_xy = self.transform(x0[0], x0[1])
+            cv2.circle(self.img, (int(x0_xy[0]), int(x0_xy[1])),
+                                    10, (0, 0, 255), -1)
+        else:
+            self.ax.plot(x0[0], x0[1], 'ob', label='Starting Point', markersize=10)
+
     def draw_goals(self, goals, color=(0, 255, 0)):
         if self.mode == "opencv":
             for goal in goals:
@@ -80,7 +90,7 @@ class Visualizer(metaclass=Singleton):
             for ii, goal in enumerate(goals):
                 self.ax.plot(goal[0], goal[1], '+g', markersize=10,
                             label='Goal' if 'Goal' not in self.ax.get_legend_handles_labels()[1] else "")
-                self.ax.text(goal[0]+0.5, goal[1], f"g{ii}", fontsize=12)
+                self.ax.text(goal[0]+0.5, goal[1], f"g{ii+1}", fontsize=12)
 
     def draw_path(self, path):
         if self.mode == "opencv":

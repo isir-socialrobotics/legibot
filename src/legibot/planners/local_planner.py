@@ -220,8 +220,9 @@ class LocalPlanner:
                     new_xy = last_xyt[:2] + np.array([np.cos(new_theta), np.sin(new_theta)]) * vw_star_other[0] * dt
                     local_path_color = (0, 155, 0) if g_idx == self.goal_idx else (0, 0, 255)
                     if self.verbose:
-                        Visualizer().add_arrow(last_xyt[:2], new_xy, color=local_path_color)
+                        # Visualizer().add_arrow(last_xyt[:2], new_xy, color=local_path_color)
                         # Visualizer().show(20)
+                        pass
 
                     last_xyt = np.array([new_xy[0], new_xy[1], new_theta])
                     optimal_plan_goal_i.append(last_xyt[:2] - xyt[:2])
@@ -259,6 +260,8 @@ class LocalPlanner:
             plan.append(new_xyt)
 
             if self.verbose:
+                if t == 0:
+                    Visualizer().draw_initial_point(xyt0)
                 Visualizer().add_arrow(xyt, new_xyt, color=(255, 0, 0))
                 Visualizer().save(os.path.join(self.out_dir, f"{now.strftime('%Y%m%d-%H%M%S')}-{round(t, 4):.4f}.png"))
                 print(f"fig saved to ", {os.path.join(self.out_dir, f'{now.strftime("%Y%m%d-%H%M%S")}-{round(t, 4):.4f}.svg')})

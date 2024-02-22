@@ -50,7 +50,7 @@ Visualizer().reset()
 #             field[j, i, 0] = f[0]
 #             field[j, i, 1] = -f[1]
 
-local_planner = LocalPlanner(goals, obstacles, goal_idx, verbose=True, enable_legibility=True)
+local_planner = LocalPlanner(goals, obstacles, goal_idx, verbose=True, enable_legibility=False)
 local_planner.legibility_cost_type = "cosine" # "cosine"
 plan_legibot = local_planner.full_plan(np.array(x0), dt=0.5)
 
@@ -69,5 +69,5 @@ plan_smooth = smooth_trajectory(plan_legibot, num_points=len(plan_legibot) * 2)
 # plot_path(plan_smooth, goals, obstacles, color='-or', ax=axs, title=plot_title)
 # plt.show()
 
-Visualizer().draw_path(plan_legibot)
+# Visualizer().draw_path(plan_legibot)
 # Visualizer().show()
