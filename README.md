@@ -27,15 +27,30 @@ git clone https://github.com/pal-robotics/aruco_ros.git
 ```
 
 ### ROS2
+Add the following lines to the `.bashrc` in Jetson:
+```sh
+source /opt/ros/foxy/setup.bash
+source ~/ros2_ws/install/setup.bash
+```
+
 ```
 sudo apt-get install ros-$ROS_DISTRO-realsense2-camera ros-$ROS_DISTRO-librealsense2* realsense2-viewer
+sudo apt-get install ros-$ROS_DISTRO-naoqi-libqi ros-$ROS_DISTRO-naoqi-libqicore ros-$ROS_DISTRO-naoqi-bridge-msgs
 cd ~/ros2_ws/src
 git clone https://github.com/ros-naoqi/naoqi_driver2.git
 git clone https://github.com/mgonzs13/yolov8_ros.git
 git clone https://github.com/JMU-ROBOTICS-VIVA/ros2_aruco.git
+pip3 install -r yolov8_ros/requirements.txt
+cd ~/ros2_ws
+colcon build --continue-on-error
 ```
 
-source /home/jetson/catkin_ws/devel/setup.bash
+### Run the stack on Jetson (ROS2)
+```sh   
+# comment line 80 in yolov8_ros/yolov8_node.py (self.yolo.fuse())
+ros2 run tf2_ros static_transform_publisher 1 0 0 0 0 0 map base_link
+ros2 launch realsense2_camera rs_launch.py
+ros2 launch yolov8_bringup yolov8_3d.launch.py input_image_topic:=/camera/color/image_raw input_depth_topic:=/camera/depth/image_rect_raw input_camera_info_topic:=/camera/color/camera_info input_depth_info_topic:=/camera/depth/camera_info model:=yolov8n.pt threshold:=0.2 target_frame:=map                                             
 ```
 
 
