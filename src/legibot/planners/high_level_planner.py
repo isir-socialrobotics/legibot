@@ -44,7 +44,7 @@ class MainPlanner:
         plan = self._local_planner.full_plan(self.robot_xyt, dt=0.5, H=100)
         plan_smooth = smooth_trajectory(plan, num_points=len(plan) * 2)
 
-        self._controller.trajectory = [Point(p[0], p[1], 0) for p in plan_smooth]
+        self._controller.trajectory = [Point(p[0], p[1], 0) for p in plan]
         self._controller.reset()
 
     def exec_loop(self):

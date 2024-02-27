@@ -71,6 +71,13 @@
     </include>
 
     <include>
+        <name>clutter_cyl</name>
+        <uri>model://clutter_cylinder</uri>
+        <pose>0.4 -0.5 0 0 0 0</pose>
+        <static>true</static>
+    </include>
+
+    <include>
       <name>table_1</name>
       <uri>model://round_table</uri>
       <pose>-2.5 -8 0 0 0 1.57</pose>

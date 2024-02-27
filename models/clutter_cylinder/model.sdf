@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sdf version="1.5">
+    <model name="clutter_cylinder">
+        <static>true</static>
+        <link name="link">
+            <collision name="collision">
+                <pose>0 0 0.3 0 0 0</pose>
+                <geometry>
+                    <cylinder>
+                        <radius>0.30</radius>
+                        <length>0.6</length>
+                    </cylinder>
+                </geometry>
+            </collision>
+
+            <visual name="visual">
+                <pose>0 0 0.3 0 0 0</pose>
+                <geometry>
+                    <cylinder>
+                        <radius>0.30</radius>
+                        <length>0.6</length>
+                    </cylinder>
+                </geometry>
+                    <script>
+                    </script>
+                <material>
+                </material>
+            </visual>
+        </link>
+    </model>
+</sdf>

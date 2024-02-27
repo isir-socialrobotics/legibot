@@ -13,8 +13,8 @@ def main():
     robot_x0 = (-0., 3.5, -1.57)
 
     # Scenario 1
-    observers = [(0.8, -6, 110),
-                 (-0.8, -6., 70),
+    observers = [(0.7, -6, 90),
+                 (-0.7, -6., 90),
                  # (-3, -5, 30),
                  ]
 
@@ -75,7 +75,7 @@ def main():
         gazebo_spawn_static_model(f"table__{i}", round_table_sdf,
                                   f"{tables_xy[i][0]}, {tables_xy[i][1]}, 0, 0, 0, {observers[i][2]}", "world")
 
-        if i == robot_goal_idx:
+        if i != robot_goal_idx:
             subprocess.Popen(["roslaunch", "legibot", "spawn_observer.launch", f"x:={observers[i][0]}",
                               f"y:={observers[i][1]}", f"yaw:={math.radians(observers[i][2]) + math.pi/2}"])
         else:
@@ -84,7 +84,7 @@ def main():
         time.sleep(0.2)
 
     # restart observer node
-    record = False
+    record = True
     subprocess.Popen(["rosnode", "kill", "/record_observer"])
     if record:
         time.sleep(0.2)
@@ -95,9 +95,10 @@ def main():
     static_map.persons = [obs[:2] for obs in observers]
     static_map.update()
 
-    legibile = True
+    legibile = False
     verbose = True
-    planner = MainPlanner([robot_goal] + other_goals, goal_idx=0, robot_xyt0=robot_x0, enable_legibility=legibile, verbose=verbose)
+    planner = MainPlanner([robot_goal] + other_goals, goal_idx=0, robot_xyt0=robot_x0, enable_legibility=legibile, verbose=verbose,
+                          w_smoothness=0.12, w_speed=0.8, w_obstacle=0.16, w_fov=1, w_legibility=0.9)
 
     exp_name = f"exp_{'legible' * legibile}_{'illegible' * (not legibile)}_{time.strftime('%Y-%m-%d_%H-%M-%S')}"
     rospy.set_param("/legibot/experiment_name", exp_name)

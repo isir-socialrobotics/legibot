@@ -13,6 +13,9 @@ class StaticMap(metaclass=Singleton):
         # self.tables_center_xy, self.observers_xy = self.parse_gazebo_world(world_filename)
         legibot_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         self.tables, self.persons = self.parse_gazebo_world(os.path.join(legibot_dir, "worlds/restaurant.world"))
+        self.clutter = [[0.4, -0.5, 0.2],
+                        # [2, 8, 0.5],
+                       ]
 
         # extract walls
         walls_list = self.parse_walls(os.path.join(legibot_dir, "worlds/walls.sdf"))
@@ -29,6 +32,7 @@ class StaticMap(metaclass=Singleton):
         self.obstacles = (self.walls
                           + [[p[0], p[1], self.human_radius] for p in self.persons]
                           + [[p[0], p[1], self.table_radius] for p in self.tables]
+                          + self.clutter
                           )
         self.observers = [[p[0], p[1]] for p in self.persons]
 

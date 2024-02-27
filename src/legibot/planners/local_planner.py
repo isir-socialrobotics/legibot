@@ -102,7 +102,7 @@ class LocalPlanner:
         # cost of deviating from optimal speed
         cost_speed_batch = np.abs(norm(displacement_vec_batch, axis=1) - self.optimal_speed_mps) # ** 2
 
-        return (cost_goal_batch * self.W["goal"], cost_obs_batch * self.W["obstacle"],
+        return (cost_goal_batch * self.W["goal"], cost_obs_batch,
                 cost_speed_batch * self.W["speed"], cost_turn_batch * self.W["smoothness"])
 
     def _cost_legibility(self, cur_xyt, vel_twist_batch, dt, goal_xyt, dxy_all_goals):
@@ -263,8 +263,9 @@ class LocalPlanner:
                 if t == 0:
                     Visualizer().draw_initial_point(xyt0)
                 Visualizer().add_arrow(xyt, new_xyt, color=(255, 0, 0))
-                Visualizer().save(os.path.join(self.out_dir, f"{now.strftime('%Y%m%d-%H%M%S')}-{round(t, 4):.4f}.png"))
-                print(f"fig saved to ", {os.path.join(self.out_dir, f'{now.strftime("%Y%m%d-%H%M%S")}-{round(t, 4):.4f}.svg')})
+                # Visualizer().save(os.path.join(self.out_dir, f"{now.strftime('%Y%m%d-%H%M%S')}-{round(t, 4):.4f}.png"))
+                # print(f"fig saved to ", {os.path.join(self.out_dir, f'{now.strftime("%Y%m%d-%H%M%S")}-{round(t, 4):.4f}.png')})
+                pass
 
             xyt = new_xyt
             if reached:
