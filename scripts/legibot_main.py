@@ -95,8 +95,8 @@ def main():
     static_map.persons = [obs[:2] for obs in observers]
     static_map.update()
 
-    legibile = False
     verbose = True
+    legibile = False
     planner = MainPlanner([robot_goal] + other_goals, goal_idx=0, robot_xyt0=robot_x0, enable_legibility=legibile, verbose=verbose,
                           w_smoothness=0.12, w_speed=0.8, w_obstacle=0.16, w_fov=1, w_legibility=0.9)
 
