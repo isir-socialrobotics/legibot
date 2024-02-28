@@ -25,6 +25,7 @@ class MainPlanner:
         self.goals = goals
         self.goal_idx = goal_idx
         self.robot_xyt = robot_xyt0
+        self.planner_dt = 1.2
         self._controller = TrajectoryController([])
         self.static_map = StaticMap()
         self._local_planner = LocalPlanner(np.array(self.goals),
@@ -42,7 +43,7 @@ class MainPlanner:
         # self.hardcode_trajectory = [Point(p[0], p[1], 0) for p in traj_curve]
 
         self._local_planner.optimal_speed_mps = 1
-        plan = self._local_planner.full_plan(self.robot_xyt, dt=0.5, H=100)
+        plan = self._local_planner.full_plan(self.robot_xyt, dt=self.planner_dt, H=100)
         plan_smooth = smooth_trajectory(plan, num_points=len(plan) * 2)
 
         self._controller.trajectory = [Point(p[0], p[1], 0) for p in plan]
