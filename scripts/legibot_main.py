@@ -10,21 +10,20 @@ from legibot.utils.gazebo_utils import gazebo_delete_model, gazebo_spawn_static_
 
 
 def main():
-    robot_x0 = (-0., 3.5, -1.57)
+    record = True
+    verbose = True
+    legibile = False
 
     # Scenario 1
+    robot_x0 = (-0., 3.5, -1.57)
     observers = [(0.7, -6, 90),
                  (-0.7, -6., 90),
-                 # (-3, -5, 30),
                  ]
-
     clutter_tables = [
         (0.4, -0.5, 0.2),
-        # (-2.5, -5.5, 0),
     ]
-    static_map = StaticMap()
-    static_map.tables = static_map.tables + clutter_tables
-    StaticMap().update()
+    planning_weights = {"w_smoothness":0.12, "w_speed":0.8, "w_obstacle":0.16, "w_fov":1, "w_legibility":0.9}
+    robot_goal_idx = 0  # 1
 
     # Scenario 2
     # observers = [(2.5, -2.5, 170),
@@ -33,7 +32,9 @@ def main():
     #              (-2.5, -8.5, -15),
     #              ]
 
-    robot_goal_idx = 0  # 1
+    static_map = StaticMap()
+    static_map.tables = static_map.tables + clutter_tables
+    StaticMap().update()
 
     # for each observer, create a table in front of them
     tables_xy = []
@@ -45,13 +46,9 @@ def main():
         tables_xy.append((table_x, table_y))
 
     robot_goal = (tables_xy[robot_goal_idx][0], tables_xy[robot_goal_idx][1], math.radians(observers[robot_goal_idx][2]))
-    other_goals = [(tables_xy[i][0], tables_xy[i][1], math.radians(observers[i][2]))
+    other_goals = [(tables_xy[i][0], tables_xy[i][1], math.radians(observers[i][2]))  # the center of the table, front of the observer
                    for i in range(len(observers)) if i != robot_goal_idx]
 
-    # read goal value
-    # goal = rospy.get_param("/robot_controller/goal", robot_goal)
-    # if len(goal) != 2:
-    #     raise RuntimeError("Exiting Trajectory Controller: Invalid Goal")
     try:
         rospy.init_node('legibot_node')
     except rospy.exceptions.ROSException:
@@ -62,7 +59,6 @@ def main():
     person_standing_sdf = os.path.join(legibot_dir, "models/person_standing/model.sdf")
     clutter_cylinder_sdf = os.path.join(legibot_dir, "models/clutter_cylinder/model.sdf")
 
-    # gazebo_delete_model(robot_name="table")
     gazebo_delete_model(robot_name="pepper")
     subprocess.Popen(["roslaunch", "legibot", "spawn_pepper.launch", f"x:={robot_x0[0]}", f"y:={robot_x0[1]}", f"yaw:={robot_x0[2]}"])
 
@@ -72,7 +68,6 @@ def main():
     gazebo_delete_model(robot_name="clutter_cyl")
 
     for i in range(len(observers)):
-        # subprocess.Popen(["roslaunch", "legibot", "spawn_table.launch", f"x:={tables_xy[i][0]}", f"y:={tables_xy[i][1]}", f"yaw:={observers[i][2]}"])
         gazebo_spawn_static_model(f"table__{i}", round_table_sdf,
                                   f"{tables_xy[i][0]}, {tables_xy[i][1]}, 0, 0, 0, {observers[i][2]}", "world")
 
@@ -89,7 +84,6 @@ def main():
                                   f"{table[0]}, {table[1]}, 0, 0, 0, 0", "world")
 
     # restart observer node
-    record = True
     subprocess.Popen(["rosnode", "kill", "/record_observer"])
     if record:
         time.sleep(0.2)
@@ -100,10 +94,8 @@ def main():
     static_map.persons = [obs[:2] for obs in observers]
     static_map.update()
 
-    verbose = True
-    legibile = False
-    planner = MainPlanner([robot_goal] + other_goals, goal_idx=0, robot_xyt0=robot_x0, enable_legibility=legibile, verbose=verbose,
-                          w_smoothness=0.12, w_speed=0.8, w_obstacle=0.16, w_fov=1, w_legibility=0.9)
+    planner = MainPlanner([robot_goal] + other_goals, goal_idx=robot_goal_idx, robot_xyt0=robot_x0,
+                          enable_legibility=legibile, verbose=verbose, **planning_weights)
 
     exp_name = f"exp_{'legible' * legibile}_{'illegible' * (not legibile)}_{time.strftime('%Y-%m-%d_%H-%M-%S')}"
     rospy.set_param("/legibot/experiment_name", exp_name)
