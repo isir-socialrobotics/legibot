@@ -11,21 +11,33 @@ from legibot.utils.gazebo_utils import gazebo_delete_model, gazebo_spawn_static_
 
 def main():
     record = True
-    verbose = True
+    record_from_actual_observer = True
+    verbose = 2
     legibile = False
 
-    # Scenario 1
-    robot_x0 = (-0., 3.5, -1.57)
-    observers = [(0.7, -6, 90),
-                 (-0.7, -6., 90),
+    ## Scenario 1
+    # robot_x0 = (-0., 3.5, -1.57)
+    # observers = [(0.7, -6, 90),
+    #              (-0.7, -6, 90),
+    #              ]
+    # clutter_tables = [
+    #     (0.4, -0.5, 0.2),
+    # ]
+    # planning_weights = {"w_smoothness":0.12, "w_speed":0.8, "w_obstacle":0.32, "w_fov":1, "w_legibility":0.9}
+    # robot_goal_idx = 0  # 1
+
+    # Scenario 2
+    robot_x0 = (3, 6, -1.57)
+    observers = [(-3, -6, 20),
+                 (-2, -8, 50),
                  ]
     clutter_tables = [
         (0.4, -0.5, 0.2),
     ]
-    planning_weights = {"w_smoothness":0.12, "w_speed":0.8, "w_obstacle":0.16, "w_fov":1, "w_legibility":0.9}
+    planning_weights = {"w_smoothness": 0.2, "w_speed": 0.6, "w_goal": 0.95,
+                        "w_obstacle": 0.2, "w_obstacle_grad": 0.1,
+                        "w_fov": .6, "w_legibility": 1.9}
     robot_goal_idx = 0  # 1
-
-    # Scenario 2
     # observers = [(2.5, -2.5, 170),
     #              # (2, -4.5, 160),
     #              # (2.5, -6.5, 160),
@@ -33,7 +45,8 @@ def main():
     #              ]
 
     static_map = StaticMap()
-    static_map.tables = static_map.tables + clutter_tables
+    static_map.tables = static_map.tables
+    static_map.clutter = clutter_tables
     StaticMap().update()
 
     # for each observer, create a table in front of them
@@ -71,12 +84,12 @@ def main():
         gazebo_spawn_static_model(f"table__{i}", round_table_sdf,
                                   f"{tables_xy[i][0]}, {tables_xy[i][1]}, 0, 0, 0, {observers[i][2]}", "world")
 
-        if i != robot_goal_idx:
-            subprocess.Popen(["roslaunch", "legibot", "spawn_observer.launch", f"x:={observers[i][0]}",
-                              f"y:={observers[i][1]}", f"yaw:={math.radians(observers[i][2]) + math.pi/2}"])
-        else:
+        if (i == robot_goal_idx) != record_from_actual_observer:  # xor
             gazebo_spawn_static_model(f"person__{i}", person_standing_sdf,
                                       f"{observers[i][0]}, {observers[i][1]}, 0.16, 0, 0, {math.radians(observers[i][2])+ math.pi/2}", "world")
+        else:
+            subprocess.Popen(["roslaunch", "legibot", "spawn_observer.launch", f"x:={observers[i][0]}",
+                              f"y:={observers[i][1]}", f"yaw:={math.radians(observers[i][2]) + math.pi / 2}"])
         time.sleep(0.2)
 
     for ii, table in enumerate(clutter_tables):

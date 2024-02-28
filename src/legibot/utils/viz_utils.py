@@ -121,8 +121,8 @@ class Visualizer(metaclass=Singleton):
                 for j in range(polar_cost_map.shape[1]):
                     angle = angle_range[0] + i * (angle_range[1] - angle_range[0]) / polar_cost_map.shape[0]
                     radius = radius_range[0] + j * (radius_range[1] - radius_range[0]) / polar_cost_map.shape[1]
-                    x = xy_center[0] + radius * np.cos(angle) * 2
-                    y = xy_center[1] + radius * np.sin(angle) * 2
+                    x = xy_center[0] + radius * np.cos(angle)
+                    y = xy_center[1] + radius * np.sin(angle)
                     x, y = self.transform(x, y)
                     color = polar_cost_map_uint[i, j]
                     cv2.circle(new_img, (int(x), int(y)), 3, (255-color, 0, color), -1)

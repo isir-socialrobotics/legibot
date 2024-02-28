@@ -4,9 +4,9 @@ import sys
 import time
 import rospy
 import numpy as np
-from geometry_msgs.msg import Point, Pose, PoseArray
+from geometry_msgs.msg import Point, Pose, PoseArray, Quaternion
 from nav_msgs.msg import Odometry
-from tf.transformations import euler_from_quaternion
+from tf.transformations import euler_from_quaternion, quaternion_from_euler
 
 from legibot.planners.smoother import smooth_trajectory
 
@@ -31,6 +31,7 @@ class MainPlanner:
                                            np.array(self.static_map.obstacles), goal_idx=self.goal_idx, **kwargs)
         # self.goal_publisher = rospy.Publisher('/pepper/goals', PoseArray, queue_size=10)
         self._odom_sub = rospy.Subscriber('/odom', Odometry, self.odom_callback)
+        self.plan_pub = rospy.Publisher('/la_planner/plan', PoseArray, queue_size=10)
 
 
     # hardcode the trajectory
@@ -45,6 +46,13 @@ class MainPlanner:
         plan_smooth = smooth_trajectory(plan, num_points=len(plan) * 2)
 
         self._controller.trajectory = [Point(p[0], p[1], 0) for p in plan]
+        pose_array = PoseArray()
+        pose_array.header.frame_id = "odom"
+        points = [Point(p[0], p[1], 0) for p in plan]
+        vels = [(0, 0)] + [(points[i+1].x - points[i].x, points[i+1].y - points[i].y) for i in range(len(points)-1)]
+        yaw = [np.arctan2(v[1], v[0]) for v in vels]
+        pose_array.poses = [Pose(p, Quaternion(*quaternion_from_euler(0, 0, yaw[i]))) for i, p in enumerate(points)]
+        self.plan_pub.publish(pose_array)
         self._controller.reset()
 
     def exec_loop(self):

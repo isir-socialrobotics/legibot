@@ -37,6 +37,7 @@ class LocalPlanner:
         # Planner parameters
         self.W = {"goal": kwargs.get("w_goal", 0.9),
                   "obstacle": kwargs.get("w_obstacle", 0.4),
+                  "obstacle_grad": kwargs.get("w_obstacle_grad", 0.4),
                   "speed": kwargs.get("w_speed", 0.6),
                   "smoothness": kwargs.get("w_smoothness", 0.1),
                   "legibility": kwargs.get("w_legibility", 1.),
@@ -79,7 +80,7 @@ class LocalPlanner:
 
         cost_grad = 1 - np.exp(-np.abs(grad_dist_to_obs))
 
-        cost_matrix = (cost_too_close * 2 + cost_grad) * self.W["obstacle"] # * w_dist_to_goal
+        cost_matrix = cost_too_close * self.W["obstacle"] + cost_grad * self.W["obstacle_grad"]
         return cost_matrix
 
     def _cost_task(self, cur_xyt, vel_twist_batch, dt, goal_xy):
@@ -127,8 +128,8 @@ class LocalPlanner:
             dxy_other_goals = np.array([dxy_all_goals[i] for i in range(len(dxy_all_goals)) if i != self.goal_idx])
             deviate_actual_goal = (dxy @ dxy_actual_goal / (norm(dxy, axis=1) * norm(dxy_actual_goal) + 1e-9)).reshape(-1, 1)
             deviate_other_goals = dxy @ dxy_other_goals.T / (norm(dxy, axis=1).reshape(-1, 1) * norm(dxy_other_goals, axis=1).reshape(1, -1) + 1e-9)
-            costs = np.pi/2 - np.clip(np.arccos(deviate_other_goals), 0, np.pi/2) \
-                    + np.clip(np.arccos(deviate_actual_goal), 0, np.pi/2) / (len(dxy_all_goals))
+            costs = np.pi/2 - np.clip(np.arccos(deviate_other_goals), 0, np.pi) \
+                    + np.clip(np.arccos(deviate_actual_goal), 0, np.pi)
 
         elif self.legibility_cost_type.lower() == "euclidean":
             next_xy_other_goals = cur_xyt[:2] + dxy_all_goals
@@ -156,7 +157,7 @@ class LocalPlanner:
         return (legib_costs_weighted * self.W["legibility"] + fov_cost.reshape(-1, 1) * self.W["fov"]).reshape(-1)
 
     def __search_optimal_velocity__(self, xyt, dt, goal, suboptimal_v_stars=[]):
-        ang_speed_range = np.linspace(-np.pi, np.pi, 72)  # 10 deg
+        ang_speed_range = np.linspace(-np.pi/2, np.pi/2, 72) / dt # 10 deg
         lin_speed_range = np.linspace(0.05, self.optimal_speed_mps, 10)
         speed_table = np.meshgrid(lin_speed_range, ang_speed_range)
 
@@ -220,7 +221,7 @@ class LocalPlanner:
                     new_xy = last_xyt[:2] + np.array([np.cos(new_theta), np.sin(new_theta)]) * vw_star_other[0] * dt
                     local_path_color = (0, 155, 0) if g_idx == self.goal_idx else (0, 0, 255)
                     if self.verbose:
-                        # Visualizer().add_arrow(last_xyt[:2], new_xy, color=local_path_color)
+                        Visualizer().add_arrow(last_xyt[:2], new_xy, color=local_path_color)
                         # Visualizer().show(20)
                         pass
 
