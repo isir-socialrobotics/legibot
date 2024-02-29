@@ -25,7 +25,7 @@ class MainPlanner:
         self.goals = goals
         self.goal_idx = goal_idx
         self.robot_xyt = robot_xyt0
-        self.planner_dt = 1.2
+        self.planner_dt = 0.6
         self._controller = TrajectoryController([])
         self.static_map = StaticMap()
         self._local_planner = LocalPlanner(np.array(self.goals),

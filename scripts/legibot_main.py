@@ -35,8 +35,8 @@ def main():
         (0.4, -0.5, 0.2),
     ]
     planning_weights = {"w_smoothness": 0.2, "w_speed": 0.6, "w_goal": 0.95,
-                        "w_obstacle": 0.2, "w_obstacle_grad": 0.1,
-                        "w_fov": .6, "w_legibility": 1.9}
+                        "w_obstacle": 0.2, "w_obstacle_grad": 0.3,
+                        "w_fov": 0.5, "w_legibility": 1.2}
     robot_goal_idx = 0  # 1
     # observers = [(2.5, -2.5, 170),
     #              # (2, -4.5, 160),
@@ -76,25 +76,29 @@ def main():
     subprocess.Popen(["roslaunch", "legibot", "spawn_pepper.launch", f"x:={robot_x0[0]}", f"y:={robot_x0[1]}", f"yaw:={robot_x0[2]}"])
 
     gazebo_delete_model(robot_name="observer")
-    gazebo_delete_model(robot_name="table")
     gazebo_delete_model(robot_name="person")
+    gazebo_delete_model(robot_name="table")
     gazebo_delete_model(robot_name="clutter_cyl")
 
     for i in range(len(observers)):
         gazebo_spawn_static_model(f"table__{i}", round_table_sdf,
                                   f"{tables_xy[i][0]}, {tables_xy[i][1]}, 0, 0, 0, {observers[i][2]}", "world")
 
-        if (i == robot_goal_idx) != record_from_actual_observer:  # xor
-            gazebo_spawn_static_model(f"person__{i}", person_standing_sdf,
-                                      f"{observers[i][0]}, {observers[i][1]}, 0.16, 0, 0, {math.radians(observers[i][2])+ math.pi/2}", "world")
-        else:
+    for i in range(len(observers)):
+        if (i == robot_goal_idx) == record_from_2nd_observer:  # xor
             subprocess.Popen(["roslaunch", "legibot", "spawn_observer.launch", f"x:={observers[i][0]}",
                               f"y:={observers[i][1]}", f"yaw:={math.radians(observers[i][2]) + math.pi / 2}"])
+        else:
+            gazebo_spawn_static_model(f"person__{i}", person_standing_sdf,
+                                      f"{observers[i][0]}, {observers[i][1]}, 0.16, 0, 0, {math.radians(observers[i][2]) + math.pi / 2}",
+                                      "world")
+
         time.sleep(0.2)
 
     for ii, table in enumerate(clutter_tables):
         gazebo_spawn_static_model(f"clutter_cyl__{ii}", clutter_cylinder_sdf,
                                   f"{table[0]}, {table[1]}, 0, 0, 0, 0", "world")
+        time.sleep(0.2)
 
     # restart observer node
     subprocess.Popen(["rosnode", "kill", "/record_observer"])

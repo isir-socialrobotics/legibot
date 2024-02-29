@@ -128,8 +128,8 @@ class LocalPlanner:
             dxy_other_goals = np.array([dxy_all_goals[i] for i in range(len(dxy_all_goals)) if i != self.goal_idx])
             deviate_actual_goal = (dxy @ dxy_actual_goal / (norm(dxy, axis=1) * norm(dxy_actual_goal) + 1e-9)).reshape(-1, 1)
             deviate_other_goals = dxy @ dxy_other_goals.T / (norm(dxy, axis=1).reshape(-1, 1) * norm(dxy_other_goals, axis=1).reshape(1, -1) + 1e-9)
-            costs = np.pi/2 - np.clip(np.arccos(deviate_other_goals), 0, np.pi) \
-                    + np.clip(np.arccos(deviate_actual_goal), 0, np.pi)
+            costs = np.pi - np.clip(np.arccos(deviate_other_goals), 0, np.pi) \
+                    + np.clip(np.arccos(deviate_actual_goal), 0, np.pi) / 2
 
         elif self.legibility_cost_type.lower() == "euclidean":
             next_xy_other_goals = cur_xyt[:2] + dxy_all_goals
@@ -144,7 +144,7 @@ class LocalPlanner:
                     norm(next_xy_batch - goal_xyt[:2], axis=1).reshape(-1, 1) + 1e-9)
         deviation_from_observer_center_of_view = np.abs(
             np.arccos(dxy_goal_normal_for_next_xy_batch @ observer_unit_vec))  # radians
-        fov_cost = 1/(1+np.exp(-(deviation_from_observer_center_of_view / (self.observer_fov/2) - 1)))
+        fov_cost = 1/(1+np.exp(-5*(deviation_from_observer_center_of_view / (self.observer_fov/2) - 1)))
         observability = np.clip(1 - deviation_from_observer_center_of_view / (self.observer_fov/2), 0, 1)
         observability[observability > 0] = 1
         # print(f"min (observability): {min(observability):.2f} max (observability): {max(observability):.2f}")
