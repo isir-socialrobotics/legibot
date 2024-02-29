@@ -5,6 +5,7 @@ import numpy as np
 
 from legibot.planners.smoother import smooth_trajectory
 from src.legibot.planners.local_planner import LocalPlanner
+from src.legibot.planners.dragan_planner import DragPlanner
 from legibot.utils.viz_utils import plot_path, Visualizer
 
 Visualizer().mode = "matplotlib"
@@ -50,9 +51,9 @@ Visualizer().reset()
 #             field[j, i, 0] = f[0]
 #             field[j, i, 1] = -f[1]
 
-local_planner = LocalPlanner(goals, obstacles, goal_idx, verbose=True, enable_legibility=False)
+local_planner = DragPlanner(goals, obstacles, goal_idx, verbose=True, enable_legibility=False)
 local_planner.legibility_cost_type = "cosine" # "cosine"
-plan_legibot = local_planner.full_plan(np.array(x0), dt=0.5)
+plan_legibot = local_planner.full_plan(np.array(x0))
 
 # fig, axs = plt.subplots(1, 1, figsize=(6, 4))
 
