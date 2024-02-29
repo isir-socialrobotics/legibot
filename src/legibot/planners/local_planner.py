@@ -156,7 +156,7 @@ class LocalPlanner:
 
         return (legib_costs_weighted * self.W["legibility"] + fov_cost.reshape(-1, 1) * self.W["fov"]).reshape(-1)
 
-    def __search_optimal_velocity__(self, xyt, dt, goal, suboptimal_v_stars=[]):
+    def _search_optimal_velocity(self, xyt, dt, goal, suboptimal_v_stars=[]):
         ang_speed_range = np.linspace(-np.pi/2, np.pi/2, 72) / dt # 10 deg
         lin_speed_range = np.linspace(0.05, self.optimal_speed_mps, 10)
         speed_table = np.meshgrid(lin_speed_range, ang_speed_range)
@@ -216,7 +216,7 @@ class LocalPlanner:
                 last_xyt = xyt
                 optimal_plan_goal_i = []
                 for step in range(self.n_steps):
-                    vw_star_other, _ = self.__search_optimal_velocity__(last_xyt, dt, goal)
+                    vw_star_other, _ = self._search_optimal_velocity(last_xyt, dt, goal)
                     new_theta = last_xyt[2] + vw_star_other[1] * dt
                     new_xy = last_xyt[:2] + np.array([np.cos(new_theta), np.sin(new_theta)]) * vw_star_other[0] * dt
                     local_path_color = (0, 155, 0) if g_idx == self.goal_idx else (0, 0, 255)
@@ -236,7 +236,7 @@ class LocalPlanner:
 
         sub_plan = [xyt]
         for step in range(self.n_steps):
-            vw_star, cost_map = self.__search_optimal_velocity__(xyt, dt, self.all_goals_xyt[self.goal_idx],
+            vw_star, cost_map = self._search_optimal_velocity(xyt, dt, self.all_goals_xyt[self.goal_idx],
                                                                  suboptimal_plan_all_goals[:, step])
             cur_theta = xyt[2]
             new_theta = cur_theta + vw_star[1] * dt
