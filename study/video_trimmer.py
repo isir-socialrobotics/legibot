@@ -9,7 +9,7 @@ frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 fps = int(cap.get(cv2.CAP_PROP_FPS))
 
 print(f"Frame count: {frame_count}, FPS: {fps}")
-cv2.namedWindow('frame', cv2.WINDOW_NORMAL)
+cv2.namedWindow('frame', cv2.WINDOW_NORMAL | cv2.WINDOW_KEEPRATIO | cv2.WINDOW_FULLSCREEN)
 
 pause = False
 frame_idx = 0
@@ -49,8 +49,9 @@ while True:
         ret, frame = cap.read()
 
 
-frame_idx_start = 70
-frame_idx_end = 655
+frame_idx_start = 180
+frame_idx_end = 950
+n_frames_per_part = int((frame_idx_end - frame_idx_start) / 4)
 
 cap = cv2.VideoCapture(inp_video)
 frame_idx = 0
@@ -62,8 +63,8 @@ for part in range(1, 4):
     out_video = f"{inp_video[:-4]}_{part*25}.avi"
     wrt = cv2.VideoWriter(out_video, cv2.VideoWriter_fourcc(*'XVID'), fps * 2, im_size[::-1])
     # cap.set(cv2.CAP_PROP_POS_FRAMES, frame_idx_start)
-    end_frame = frame_idx_start + int(part * (frame_idx_end - frame_idx_start) / 4)
-    for i in range(frame_idx_start, end_frame):
+    end_frame = frame_idx_start + n_frames_per_part
+    for __ in range(n_frames_per_part):
         ret, frame = cap.read()
         if not ret:
             print("Frame read error")

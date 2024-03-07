@@ -13,7 +13,7 @@ def main():
     record = True
     record_from_actual_observer = True
     verbose = 2
-    legibile = False
+    legibile = True
 
     ## Scenario 1
     # robot_x0 = (-0., 3.5, -1.57)
@@ -34,9 +34,11 @@ def main():
     clutter_tables = [
         (0.4, -0.5, 0.2),
     ]
-    planning_weights = {"w_smoothness": 0.22, "w_speed": 0.6, "w_goal": 0.95,
-                        "w_obstacle": 0.215, "w_obstacle_grad": 0.308,
-                        "w_fov": 0.5, "w_legibility": 1.2}
+    planning_weights = {"w_smoothness": 0.25, "w_speed": 0.6, "w_goal": 0.95,
+                        "w_obstacle": 0.22, "w_obstacle_grad": 0.45,
+                        "w_fov": 0.5, "w_legibility": 1.2,
+                        # "obstacle_radius": 0.6,
+                        }
     robot_goal_idx = 0  # 1
     # observers = [(2.5, -2.5, 170),
     #              # (2, -4.5, 160),
