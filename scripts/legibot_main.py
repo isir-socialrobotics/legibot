@@ -34,8 +34,8 @@ def main():
     clutter_tables = [
         (0.4, -0.5, 0.2),
     ]
-    planning_weights = {"w_smoothness": 0.2, "w_speed": 0.6, "w_goal": 0.95,
-                        "w_obstacle": 0.2, "w_obstacle_grad": 0.3,
+    planning_weights = {"w_smoothness": 0.22, "w_speed": 0.6, "w_goal": 0.95,
+                        "w_obstacle": 0.215, "w_obstacle_grad": 0.308,
                         "w_fov": 0.5, "w_legibility": 1.2}
     robot_goal_idx = 0  # 1
     # observers = [(2.5, -2.5, 170),
@@ -59,6 +59,7 @@ def main():
         tables_xy.append((table_x, table_y))
 
     robot_goal = (tables_xy[robot_goal_idx][0], tables_xy[robot_goal_idx][1], math.radians(observers[robot_goal_idx][2]))
+    # robot_goal = [robot_goal[0], robot_goal[1], robot_goal[2]]
     other_goals = [(tables_xy[i][0], tables_xy[i][1], math.radians(observers[i][2]))  # the center of the table, front of the observer
                    for i in range(len(observers)) if i != robot_goal_idx]
 
@@ -85,7 +86,7 @@ def main():
                                   f"{tables_xy[i][0]}, {tables_xy[i][1]}, 0, 0, 0, {observers[i][2]}", "world")
 
     for i in range(len(observers)):
-        if (i == robot_goal_idx) == record_from_2nd_observer:  # xor
+        if (i == robot_goal_idx) == record_from_actual_observer:  # xor
             subprocess.Popen(["roslaunch", "legibot", "spawn_observer.launch", f"x:={observers[i][0]}",
                               f"y:={observers[i][1]}", f"yaw:={math.radians(observers[i][2]) + math.pi / 2}"])
         else:
