@@ -206,7 +206,9 @@ class LocalPlanner:
 
     def step(self, xyt, dt) -> (np.ndarray, np.ndarray, bool):
         if norm(xyt[:2] - self.all_goals_xyt[self.goal_idx][:2]) < (self.goal_radius + self.robot_radius + dt * self.optimal_speed_mps):
-            return [self.all_goals_xyt[self.goal_idx][0], self.all_goals_xyt[self.goal_idx][1], xyt[2]], True
+            return [xyt, [self.all_goals_xyt[self.goal_idx][0],
+                          self.all_goals_xyt[self.goal_idx][1], xyt[2]]
+                    ], True
 
         suboptimal_plan_all_goals = []
         other_goals = [self.all_goals_xyt[i] for i in range(len(self.all_goals_xyt)) if i != self.goal_idx]
@@ -223,7 +225,6 @@ class LocalPlanner:
                     if self.verbose:
                         Visualizer().add_arrow(last_xyt[:2], new_xy, color=local_path_color)
                         # Visualizer().show(20)
-                        pass
 
                     last_xyt = np.array([new_xy[0], new_xy[1], new_theta])
                     optimal_plan_goal_i.append(last_xyt[:2] - xyt[:2])
@@ -246,7 +247,7 @@ class LocalPlanner:
             # if step == 0:
             #     print("vw_star:", vw_star)
 
-        return sub_plan[1], False
+        return sub_plan, False
 
     def full_plan(self, xyt0, dt, H=200):
         assert len(xyt0) == 3, "local_planner: x0 must be a 3D vector: [x, y, theta(rad)]"
@@ -257,7 +258,8 @@ class LocalPlanner:
         now = datetime.now()
         for t in np.arange(0, H * dt, dt):
             # print("step: ", t, end=" ")
-            new_xyt, reached = self.step(xyt, dt)
+            new_xyts, reached = self.step(xyt, dt)
+            new_xyt = new_xyts[1]
             plan.append(new_xyt)
 
             if self.verbose:
