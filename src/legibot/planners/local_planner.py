@@ -23,9 +23,10 @@ class LocalPlanner:
         self.legibility_cost_type = kwargs.get("legibility_cost_type", "cosine")  # ["cosine", "euclidean"]
 
         if self.verbose:
+            Visualizer().reset()
             Visualizer().draw_obstacles(obstacles)
             Visualizer().draw_goals(goals)
-            Visualizer().draw_goals(StaticMap().observers, color=(0, 255, 240))
+            # Visualizer().draw_goals(StaticMap().observers, color=(0, 255, 240))
 
         self.robot_radius = 0.3  # pepper?
         self.goal_radius = 0.5  # m
@@ -45,7 +46,7 @@ class LocalPlanner:
                   }
         self.n_steps = kwargs.get("n_steps", 4)
 
-        self.out_dir = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../../out"))
+        self.out_dir = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../../out_March"))
 
     def _cost_obstacle(self, cur_xy, next_xy, goal_xy=None):  # xy can be a point or a batch of points
         next_xy = next_xy.reshape(-1, 2)
@@ -221,9 +222,9 @@ class LocalPlanner:
                     vw_star_other, _ = self._search_optimal_velocity(last_xyt, dt, goal)
                     new_theta = last_xyt[2] + vw_star_other[1] * dt
                     new_xy = last_xyt[:2] + np.array([np.cos(new_theta), np.sin(new_theta)]) * vw_star_other[0] * dt
-                    local_path_color = (0, 155, 0) if g_idx == self.goal_idx else (0, 0, 255)
+                    local_path_color = (0, 155, 0) if g_idx == self.goal_idx else (255, 0, 0)
                     if self.verbose:
-                        Visualizer().add_arrow(last_xyt[:2], new_xy, color=local_path_color)
+                        Visualizer().add_arrow(last_xyt[:2], new_xy, color_rgb=local_path_color)
                         # Visualizer().show(20)
 
                     last_xyt = np.array([new_xy[0], new_xy[1], new_theta])
@@ -237,15 +238,13 @@ class LocalPlanner:
 
         sub_plan = [xyt]
         for step in range(self.n_steps):
-            vw_star, cost_map = self._search_optimal_velocity(xyt, dt, self.all_goals_xyt[self.goal_idx],
+            vw_star, cost_map = self._search_optimal_velocity(sub_plan[-1], dt, self.all_goals_xyt[self.goal_idx],
                                                                  suboptimal_plan_all_goals[:, step])
-            cur_theta = xyt[2]
+            cur_theta = sub_plan[-1][2]
             new_theta = cur_theta + vw_star[1] * dt
-            next_xy = xyt[:2] + np.array([np.cos(new_theta), np.sin(new_theta)]) * vw_star[0] * dt
+            next_xy = sub_plan[-1][:2] + np.array([np.cos(new_theta), np.sin(new_theta)]) * vw_star[0] * dt
 
             sub_plan.append((next_xy[0], next_xy[1], new_theta))
-            # if step == 0:
-            #     print("vw_star:", vw_star)
 
         return sub_plan, False
 
@@ -257,18 +256,27 @@ class LocalPlanner:
 
         now = datetime.now()
         for t in np.arange(0, H * dt, dt):
+            Visualizer().reset()
             # print("step: ", t, end=" ")
             new_xyts, reached = self.step(xyt, dt)
             new_xyt = new_xyts[1]
             plan.append(new_xyt)
 
             if self.verbose:
-                if t == 0:
-                    Visualizer().draw_initial_point(xyt0)
-                Visualizer().add_arrow(xyt, new_xyt, color=(255, 0, 0))
-                # Visualizer().save(os.path.join(self.out_dir, f"{now.strftime('%Y%m%d-%H%M%S')}-{round(t, 4):.4f}.png"))
+                Visualizer().draw_obstacles(self.obstacles)
+                Visualizer().draw_goals([self.all_goals_xyt[self.goal_idx]], color=(200, 0, 200), edge_color=(0.1, 0, 0))
+                Visualizer().draw_goals([self.all_goals_xyt[i] for i in range(len(self.all_goals_xyt)) if i != self.goal_idx], color=(200, 0, 200))
+                # Visualizer().draw_goals(StaticMap().observers, color=(0, 255, 240))
+                Visualizer().draw_path(plan, color_rgb=(0, 0, 255))
+
+
+                # if t == 0:
+                Visualizer().draw_initial_point(xyt0)
+                for ii in range(len(new_xyts) - 1):
+                    Visualizer().add_arrow(new_xyts[ii], new_xyts[ii + 1], color_rgb=(0, 0, 255))
+
+                Visualizer().save(os.path.join(self.out_dir, f"{now.strftime('%Y%m%d-%H%M%S')}-{round(t, 4):.4f}.png"))
                 # print(f"fig saved to ", {os.path.join(self.out_dir, f'{now.strftime("%Y%m%d-%H%M%S")}-{round(t, 4):.4f}.png')})
-                pass
 
             xyt = new_xyt
             if reached:

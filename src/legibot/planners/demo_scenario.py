@@ -12,10 +12,10 @@ Visualizer().mode = "matplotlib"
 Visualizer().reset()
 x0 = [0, 0, 0]
 goals = np.array([
-                  [10, 10, math.radians(-135)],
+                  [10, 10, math.radians(175)],
                   # [3, 9],
                   # [9, 1, math.radians(180)],
-                  [9.55, 6, math.radians(180)]
+                  [9.55, 6, math.radians(-130)]
                   ])
 goal_idx = 0
 
@@ -51,7 +51,7 @@ Visualizer().reset()
 #             field[j, i, 0] = f[0]
 #             field[j, i, 1] = -f[1]
 
-local_planner = LocalPlanner(goals, obstacles, goal_idx, verbose=2, enable_legibility=True)
+local_planner = LocalPlanner(goals, obstacles, goal_idx, verbose=1, enable_legibility=True)
 local_planner.legibility_cost_type = "cosine" # "cosine"
 plan_legibot = local_planner.full_plan(np.array(x0), dt=0.6)
 

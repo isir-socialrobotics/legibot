@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import cv2
+import matplotlib.patches as patches
 
 from legibot.utils.singleton import Singleton
 
@@ -37,7 +38,7 @@ class Visualizer(metaclass=Singleton):
         if self.mode == "opencv":
             cv2.imwrite(filename, cv2.flip(self.img, 0))
         else:
-            plt.legend()
+            # plt.legend()
             plt.savefig(filename)
 
     def reset(self):
@@ -72,6 +73,19 @@ class Visualizer(metaclass=Singleton):
                                     color='k', hatch='///', fill=False)
                 self.ax.add_artist(circle)
 
+    def draw_triangle(self, xy_center, yaw, color_rgb=(0, 0, 255), edge_color=None):
+        points = np.array([[xy_center[0] + np.cos(yaw) * 0.2, xy_center[1] + np.sin(yaw) * 0.2],
+                           [xy_center[0] + np.cos(yaw + np.pi * 2/3) * 0.15, xy_center[1] + np.sin(yaw + np.pi * 2/3) * 0.15],
+                           [xy_center[0] + np.cos(yaw + np.pi * 4/3) * 0.15, xy_center[1] + np.sin(yaw + np.pi * 4/3) * 0.15],
+                           ])
+        if self.mode == "opencv":
+            points_tf = np.array([self.transform(p[0], p[1]) for p in points])
+            cv2.polylines(self.img, [points_tf], True, color_rgb[::-1], 2)
+        else:
+            triangle = patches.Polygon(points, closed=True, fill=True,
+                                       fc=(color_rgb[0]/255, color_rgb[1]/255, color_rgb[2]/255), ec=edge_color, linewidth=2)
+            self.ax.add_patch(triangle)
+
     def draw_initial_point(self, x0):
         if self.mode == "opencv":
             x0_xy = self.transform(x0[0], x0[1])
@@ -80,38 +94,41 @@ class Visualizer(metaclass=Singleton):
         else:
             self.ax.plot(x0[0], x0[1], 'ob', label='Starting Point', markersize=10)
 
-    def draw_goals(self, goals, color=(0, 255, 0)):
-        if self.mode == "opencv":
-            for goal in goals:
-                g_xy = self.transform(goal[0], goal[1])
-                cv2.drawMarker(self.img, (int(g_xy[0]), int(g_xy[1])),
-                               color, cv2.MARKER_CROSS, 20, 5)
-        else:
-            for ii, goal in enumerate(goals):
-                self.ax.plot(goal[0], goal[1], '+g', markersize=10,
-                            label='Goal' if 'Goal' not in self.ax.get_legend_handles_labels()[1] else "")
-                self.ax.text(goal[0]+0.5, goal[1], f"g{ii+1}", fontsize=12)
+    def draw_goals(self, goals, color=(0, 255, 0), edge_color=None):
+        for ii, goal in enumerate(goals):
+            self.draw_triangle(goal[:2], goal[2], color, edge_color)
+        # if self.mode == "opencv":
+        #     for goal in goals:
+        #         g_xy = self.transform(goal[0], goal[1])
+        #         cv2.drawMarker(self.img, (int(g_xy[0]), int(g_xy[1])),
+        #                        color, cv2.MARKER_CROSS, 20, 5)
+        # else:
+        #     for ii, goal in enumerate(goals):
+        #         self.ax.plot(goal[0], goal[1], '+g', markersize=10,
+        #                     label='Goal' if 'Goal' not in self.ax.get_legend_handles_labels()[1] else "")
+            self.ax.text(goal[0]+0.5, goal[1], f"G{ii+1}", fontsize=12)
 
-    def draw_path(self, path):
+    def draw_path(self, path, color_rgb=(0, 0, 255)):
         if self.mode == "opencv":
             for i in range(len(path)-1):
                 p_i_xy = self.transform(path[i][0], path[i][1])
                 p_i1_xy = self.transform(path[i+1][0], path[i+1][1])
                 cv2.line(self.img, (int(p_i_xy[0]), int(p_i_xy[1])), (int(p_i1_xy[0]), int(p_i1_xy[1])),
-                                    (255, 0, 0), 5)
+                                    color_rgb[::-1], 5)
         else:
-            self.ax.plot([x[0] for x in path], [x[1] for x in path], '-or', label='Path')
+            self.ax.plot([x[0] for x in path], [x[1] for x in path],
+                         color=(color_rgb[0]/255, color_rgb[1]/255, color_rgb[2]/255), marker='o', linestyle='-', label='Path')
 
-    def add_arrow(self, xy, uv, color=(0, 100, 255)):
+    def add_arrow(self, xy, uv, color_rgb=(0, 100, 255)):
         if self.mode == "opencv":
             xy_trans = self.transform(xy[0], xy[1])
             uv_trans = self.transform(uv[0], uv[1])
             cv2.arrowedLine(self.img, (int(xy_trans[0]), int(xy_trans[1])),
                                       (int(uv_trans[0]), int(uv_trans[1])),
-                                      color, 2)
+                                      color_rgb[::-1], 2)
         else:
             self.ax.arrow(xy[0], xy[1], uv[0] - xy[0], uv[1] - xy[1],
-                            head_width=0.2, head_length=0.3, fc='k', ec=(color[2]/255, color[1]/255, color[0]/255))
+                            head_width=0.2, head_length=0.3, fc='k', ec=(color_rgb[0]/255, color_rgb[1]/255, color_rgb[2]/255))
 
     def draw_heatmap(self, xy_center, polar_cost_map, radius_range, angle_range, title="Heatmap"):
         new_img = self.img  # np.ones((self.im_size[0], self.im_size[1], 3), dtype=np.uint8) * 255
