@@ -262,7 +262,7 @@ class LocalPlanner:
             new_xyt = new_xyts[1]
             plan.append(new_xyt)
 
-            if self.verbose:
+            if self.verbose > 1:
                 Visualizer().draw_obstacles(self.obstacles)
                 Visualizer().draw_goals(self.all_goals_xyt, color=(200, 0, 200), with_text=True)
                 Visualizer().draw_goals([self.all_goals_xyt[self.goal_idx]], color=(200, 0, 200), edge_color=(0.1, 0, 0), with_text=False)

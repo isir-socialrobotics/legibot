@@ -79,7 +79,7 @@ class Visualizer(metaclass=Singleton):
                            [xy_center[0] + np.cos(yaw + np.pi * 4/3) * 0.15, xy_center[1] + np.sin(yaw + np.pi * 4/3) * 0.15],
                            ])
         if self.mode == "opencv":
-            points_tf = np.array([self.transform(p[0], p[1]) for p in points])
+            points_tf = np.array([self.transform(p[0], p[1]) for p in points]).astype(np.int32)
             cv2.polylines(self.img, [points_tf], True, color_rgb[::-1], 2)
         else:
             triangle = patches.Polygon(points, closed=True, fill=True,
@@ -106,7 +106,7 @@ class Visualizer(metaclass=Singleton):
         #     for ii, goal in enumerate(goals):
         #         self.ax.plot(goal[0], goal[1], '+g', markersize=10,
         #                     label='Goal' if 'Goal' not in self.ax.get_legend_handles_labels()[1] else "")
-            if with_text:
+            if with_text and self.mode == "matplotlib":
                 self.ax.text(goal[0]+0.5, goal[1], f"G{ii+1}", fontsize=12)
 
     def draw_path(self, path, color_rgb=(0, 0, 255)):
