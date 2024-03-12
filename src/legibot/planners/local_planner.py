@@ -264,8 +264,8 @@ class LocalPlanner:
 
             if self.verbose:
                 Visualizer().draw_obstacles(self.obstacles)
-                Visualizer().draw_goals([self.all_goals_xyt[self.goal_idx]], color=(200, 0, 200), edge_color=(0.1, 0, 0))
-                Visualizer().draw_goals([self.all_goals_xyt[i] for i in range(len(self.all_goals_xyt)) if i != self.goal_idx], color=(200, 0, 200))
+                Visualizer().draw_goals(self.all_goals_xyt, color=(200, 0, 200), with_text=True)
+                Visualizer().draw_goals([self.all_goals_xyt[self.goal_idx]], color=(200, 0, 200), edge_color=(0.1, 0, 0), with_text=False)
                 # Visualizer().draw_goals(StaticMap().observers, color=(0, 255, 240))
                 Visualizer().draw_path(plan, color_rgb=(0, 0, 255))
 

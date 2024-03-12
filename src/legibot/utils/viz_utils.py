@@ -94,7 +94,7 @@ class Visualizer(metaclass=Singleton):
         else:
             self.ax.plot(x0[0], x0[1], 'ob', label='Starting Point', markersize=10)
 
-    def draw_goals(self, goals, color=(0, 255, 0), edge_color=None):
+    def draw_goals(self, goals, color=(0, 255, 0), edge_color=None, with_text=False):
         for ii, goal in enumerate(goals):
             self.draw_triangle(goal[:2], goal[2], color, edge_color)
         # if self.mode == "opencv":
@@ -106,7 +106,8 @@ class Visualizer(metaclass=Singleton):
         #     for ii, goal in enumerate(goals):
         #         self.ax.plot(goal[0], goal[1], '+g', markersize=10,
         #                     label='Goal' if 'Goal' not in self.ax.get_legend_handles_labels()[1] else "")
-            self.ax.text(goal[0]+0.5, goal[1], f"G{ii+1}", fontsize=12)
+            if with_text:
+                self.ax.text(goal[0]+0.5, goal[1], f"G{ii+1}", fontsize=12)
 
     def draw_path(self, path, color_rgb=(0, 0, 255)):
         if self.mode == "opencv":
