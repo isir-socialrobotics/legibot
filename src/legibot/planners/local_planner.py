@@ -286,6 +286,7 @@ class LocalPlanner:
 
         # plan.append([self.all_goals[self.goal_idx][0], self.all_goals[self.goal_idx][1], xyt[2]])
         if self.verbose:
+            Visualizer().draw_initial_point(xyt0)
             Visualizer().draw_path(plan)
             Visualizer().show(delay=100)
         return plan

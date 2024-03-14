@@ -121,7 +121,7 @@ class Visualizer(metaclass=Singleton):
                                     color_rgb[::-1], 5)
         else:
             self.ax.plot([x[0] for x in path], [x[1] for x in path],
-                         color=(color_rgb[0]/255, color_rgb[1]/255, color_rgb[2]/255), marker='o', linestyle='-', label='Path')
+                         color=(color_rgb[0]/255, color_rgb[1]/255, color_rgb[2]/255), marker='.', linestyle='-', label='Path')
 
     def add_arrow(self, xy, uv, color_rgb=(0, 100, 255)):
         if self.mode == "opencv":
