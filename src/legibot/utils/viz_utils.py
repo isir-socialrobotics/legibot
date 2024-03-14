@@ -12,6 +12,7 @@ class Visualizer(metaclass=Singleton):
         self.im_size = (1000, 1000)
         self.world_x_range = (-10, 10)
         self.world_y_range = (-10, 10)
+        self.grid_on = False
 
         if self.mode == "opencv":
             self.img = None
@@ -32,6 +33,8 @@ class Visualizer(metaclass=Singleton):
                 print("Exiting...")
                 exit()
         else:
+            if self.grid_on:
+                plt.grid(True, alpha=0.5)
             plt.show()
 
     def save(self, filename):

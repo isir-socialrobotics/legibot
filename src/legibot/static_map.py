@@ -1,4 +1,5 @@
 import os
+import math
 import numpy as np
 import xml.etree.ElementTree as ET
 from geometry_msgs.msg import Pose, Point, Quaternion
@@ -19,6 +20,8 @@ class StaticMap(metaclass=Singleton):
         walls_list = self.parse_walls(os.path.join(legibot_dir, "worlds/walls.sdf"))
         self.walls = self.conv_walls_to_obstacles(walls_list)
 
+        self.lidar_map = self.parse_laser_map(os.path.join(legibot_dir, "worlds/laser_map.sdf"))
+
         self.human_radius = 0.3
         self.table_radius = 0.5
         self.update()
@@ -31,6 +34,7 @@ class StaticMap(metaclass=Singleton):
                           + [[p[0], p[1], self.human_radius] for p in self.persons]
                           + [[p[0], p[1], self.table_radius] for p in self.tables]
                           + self.clutter
+                          + [[p[0], p[1], 0.05] for p in self.lidar_map if not math.isinf(p[0]) and not math.isinf(p[1])]
                           )
         self.observers = [[p[0], p[1]] for p in self.persons]
 
@@ -90,6 +94,27 @@ class StaticMap(metaclass=Singleton):
 
             print(f'Link Element Text: {link_element.attrib["name"]} {link_element.find("pose").text}')
         return walls
+
+    def parse_laser_map(self, laser_map_filename):
+        laser_filename = "/home/javad/workspace/catkin_ws/src/legibot/pepper/ros2_data_2/laser_data_1710438665.0544803.npy"
+        laser_ranges = np.load(laser_filename)
+
+        angle_min = -3.1241390705108643
+        angle_max = 3.1415927410125732
+        angle_increment = 0.005806980188935995
+        range_min = 0.15000000596046448
+        range_max = 12.0
+
+        offset_angle = np.radians(-16)
+        # convert to xy
+        angles = np.arange(angle_min, angle_max, angle_increment) + offset_angle
+        x = laser_ranges * np.cos(angles)
+        y = laser_ranges * np.sin(angles)
+        xy = np.stack([x, y], axis=1)
+
+        # filter angles
+        xy = xy[(-np.pi/2 + 0. < angles) & (angles < 0)]
+        return xy
 
     @staticmethod
     def conv_walls_to_obstacles(walls):

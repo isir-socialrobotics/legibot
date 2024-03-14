@@ -29,7 +29,7 @@ class LocalPlanner:
             # Visualizer().draw_goals(StaticMap().observers, color=(0, 255, 240))
 
         self.robot_radius = 0.3  # pepper?
-        self.goal_radius = 0.5  # m
+        self.goal_radius = kwargs.get("goal_radius", 0.5)  # m (once robot arrives within this radius, it's considered reached)
         self.obstacle_radius = kwargs.get("obstacle_radius", 0.5)  # m (robot should keep this distance from obstacles)
         self.obstacle_radius_big = 3.0  # used to predict obstacles in more distant future, and adapt its plan
 
@@ -223,7 +223,7 @@ class LocalPlanner:
                     new_theta = last_xyt[2] + vw_star_other[1] * dt
                     new_xy = last_xyt[:2] + np.array([np.cos(new_theta), np.sin(new_theta)]) * vw_star_other[0] * dt
                     local_path_color = (0, 155, 0) if g_idx == self.goal_idx else (255, 0, 0)
-                    if self.verbose:
+                    if self.verbose > 1:
                         Visualizer().add_arrow(last_xyt[:2], new_xy, color_rgb=local_path_color)
                         # Visualizer().show(20)
 
@@ -256,7 +256,8 @@ class LocalPlanner:
 
         now = datetime.now()
         for t in np.arange(0, H * dt, dt):
-            Visualizer().reset()
+            if self.verbose > 1:
+                Visualizer().reset()
             # print("step: ", t, end=" ")
             new_xyts, reached = self.step(xyt, dt)
             new_xyt = new_xyts[1]
