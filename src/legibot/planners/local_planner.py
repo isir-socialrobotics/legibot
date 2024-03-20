@@ -12,7 +12,7 @@ from legibot.utils.viz_utils import Visualizer
 
 
 class LocalPlanner:
-    def __init__(self, goals, obstacles, goal_idx, **kwargs):
+    def __init__(self, goals, obstacles, goal_idx=0, **kwargs):
         self.all_goals_xyt = goals
         self.goal_idx = goal_idx
         self.obstacles = obstacles
@@ -50,6 +50,9 @@ class LocalPlanner:
 
     def _cost_obstacle(self, cur_xy, next_xy, goal_xy=None):  # xy can be a point or a batch of points
         next_xy = next_xy.reshape(-1, 2)
+        if len(self.obstacles) == 0:
+            return np.zeros((len(next_xy)))
+
         Dx = pairwise_distances(next_xy[:, 0].reshape(-1, 1), self.obstacles[:, 0].reshape(-1, 1))
         Dy = pairwise_distances(next_xy[:, 1].reshape(-1, 1), self.obstacles[:, 1].reshape(-1, 1))
         D_center2center = np.sqrt(np.square(Dx) + np.square(Dy))

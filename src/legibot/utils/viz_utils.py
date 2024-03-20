@@ -76,18 +76,24 @@ class Visualizer(metaclass=Singleton):
                                     color='k', hatch='///', fill=False)
                 self.ax.add_artist(circle)
 
-    def draw_triangle(self, xy_center, yaw, color_rgb=(0, 0, 255), edge_color=None):
-        points = np.array([[xy_center[0] + np.cos(yaw) * 0.2, xy_center[1] + np.sin(yaw) * 0.2],
-                           [xy_center[0] + np.cos(yaw + np.pi * 2/3) * 0.15, xy_center[1] + np.sin(yaw + np.pi * 2/3) * 0.15],
-                           [xy_center[0] + np.cos(yaw + np.pi * 4/3) * 0.15, xy_center[1] + np.sin(yaw + np.pi * 4/3) * 0.15],
+    def draw_triangle(self, xy_center, yaw, rad=0.2, color_rgb=(0, 0, 255, 100), edge_color=None):
+        points = np.array([[xy_center[0] + np.cos(yaw) * rad, xy_center[1] + np.sin(yaw) * rad],
+                           [xy_center[0] + np.cos(yaw + np.pi * 2/3) * rad*0.75, xy_center[1] + np.sin(yaw + np.pi * 2/3) * rad*0.75],
+                           [xy_center[0] + np.cos(yaw + np.pi * 4/3) * rad*0.75, xy_center[1] + np.sin(yaw + np.pi * 4/3) * rad*0.75],
                            ])
+        self.draw_polygon(points, color_rgb, edge_color)
+
+    def draw_polygon(self, points, color_rgb=(0, 0, 255, 100), edge_color=None):
+        if len(color_rgb) == 3:
+            color_rgb = list(color_rgb) + [100]
         if self.mode == "opencv":
             points_tf = np.array([self.transform(p[0], p[1]) for p in points]).astype(np.int32)
             cv2.polylines(self.img, [points_tf], True, color_rgb[::-1], 2)
         else:
-            triangle = patches.Polygon(points, closed=True, fill=True,
-                                       fc=(color_rgb[0]/255, color_rgb[1]/255, color_rgb[2]/255), ec=edge_color, linewidth=2)
-            self.ax.add_patch(triangle)
+            polygon = patches.Polygon(points, closed=True, fill=True, linewidth=2,
+                                      ec=(edge_color[0]/255, edge_color[1]/255, edge_color[2]/255) if edge_color else None,
+                                      fc=(color_rgb[0]/255, color_rgb[1]/255, color_rgb[2]/255, color_rgb[3]/100))
+            self.ax.add_patch(polygon)
 
     def draw_initial_point(self, x0):
         if self.mode == "opencv":
@@ -97,9 +103,9 @@ class Visualizer(metaclass=Singleton):
         else:
             self.ax.plot(x0[0], x0[1], 'ob', label='Starting Point', markersize=10)
 
-    def draw_goals(self, goals, color=(0, 255, 0), edge_color=None, with_text=False):
+    def draw_goals(self, goals, color=(200, 0, 200), edge_color=None, with_text=False):
         for ii, goal in enumerate(goals):
-            self.draw_triangle(goal[:2], goal[2], color, edge_color)
+            self.draw_triangle(goal[:2], goal[2], 0.2, color, edge_color)
         # if self.mode == "opencv":
         #     for goal in goals:
         #         g_xy = self.transform(goal[0], goal[1])
