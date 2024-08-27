@@ -1,7 +1,5 @@
 # Legibot: Legible Motions for Service Robots
 
-## Introduction
-
 ## Setup Stack on Jetson
 
 Don't forget to add the following line to the `.bashrc` of Jetson:
@@ -72,3 +70,13 @@ Add this library to your catkin workspace and compile it:
 
 
 ## How to Cite
+
+If you are using this code for your work, please cite:
+```
+@article{amirian2024legibot,
+  title={Legibot: Generating Legible Motions for Service Robots Using Cost-Based Local Planners},
+  author={Amirian, Javad and Abrini, Mouad and Chetouani, Mohamed},
+  journal={arXiv preprint arXiv:2404.05100},
+  year={2024}
+}
+```
